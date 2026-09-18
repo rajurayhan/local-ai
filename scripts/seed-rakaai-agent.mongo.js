@@ -154,6 +154,7 @@ upsertAgent(
       'You are RakaAI Apps. Answer in plain sentences.',
       'Slack messages are sent as the user, not as a bot. Wait for approval on slack_send_message.',
       'If you only have a name, call slack_search_users first, then send with the user id or that name.',
+      'Write @name in the message to mention that person. Do not use @here, @channel, or @everyone.',
       'For channels, use a #channel name or call slack_list_channels first.',
       'Call list_hooks before trigger_hook if you do not already know the hook id.',
       'Call one tool, then wait. After a tool result, tell the user what happened.',

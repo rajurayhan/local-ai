@@ -53,6 +53,27 @@ function authorize(req: http.IncomingMessage, token: string): boolean {
   return header === `Bearer ${token}`;
 }
 
+function sessionKey(packName: PackName, sessionId: string): string {
+  return `${packName}:${sessionId}`;
+}
+
+function rejectSession(req: http.IncomingMessage, res: http.ServerResponse): void {
+  if (req.method === 'GET') {
+    res.writeHead(404).end('Not Found');
+    return;
+  }
+
+  res
+    .writeHead(400, { 'Content-Type': 'application/json' })
+    .end(
+      JSON.stringify({
+        jsonrpc: '2.0',
+        error: { code: -32000, message: 'Bad Request: No valid session ID provided' },
+        id: null,
+      }),
+    );
+}
+
 async function handleMcp(
   req: http.IncomingMessage,
   res: http.ServerResponse,
@@ -60,21 +81,30 @@ async function handleMcp(
   config: DeviceConfig,
 ): Promise<void> {
   const sessionId = req.headers['mcp-session-id'];
-  const existing = typeof sessionId === 'string' ? sessions.get(`${pack.name}:${sessionId}`) : undefined;
+  const existing = typeof sessionId === 'string' ? sessions.get(sessionKey(pack.name, sessionId)) : undefined;
 
   if (existing) {
     await existing.handleRequest(req, res);
     return;
   }
 
-  if (req.method === 'GET' || req.method === 'DELETE') {
-    res.writeHead(400).end('Missing MCP session');
+  if (typeof sessionId === 'string' || req.method !== 'POST') {
+    rejectSession(req, res);
     return;
   }
 
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: () => randomUUID(),
+    onsessioninitialized: (sid) => {
+      sessions.set(sessionKey(pack.name, sid), transport);
+    },
   });
+  transport.onclose = () => {
+    if (transport.sessionId) {
+      sessions.delete(sessionKey(pack.name, transport.sessionId));
+    }
+  };
+
   const mcp = new McpServer(
     {
       name: pack.shareName,
@@ -89,15 +119,6 @@ async function handleMcp(
   registerPack(mcp, pack, config);
   await mcp.connect(transport);
   await transport.handleRequest(req, res);
-
-  if (transport.sessionId) {
-    sessions.set(`${pack.name}:${transport.sessionId}`, transport);
-    transport.onclose = () => {
-      if (transport.sessionId) {
-        sessions.delete(`${pack.name}:${transport.sessionId}`);
-      }
-    };
-  }
 }
 
 export function createServer(config: DeviceConfig): http.Server {

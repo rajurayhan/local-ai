@@ -3,7 +3,7 @@ import { test } from 'node:test';
 
 import type { HttpPoster } from './types.ts';
 import type { SlackApi } from './slack.ts';
-import { classifySlackTo, createSlackApi, sendSlackMessage, slackPersonMatches } from './slack.ts';
+import { classifySlackTo, createSlackApi, resolveSlackMentions, sendSlackMessage, slackPersonMatches } from './slack.ts';
 
 function fakeSlack(over: Partial<SlackApi> = {}): SlackApi {
   return {
@@ -163,6 +163,111 @@ test('createSlackApi search walks later user pages', async () => {
   const found = await slack.searchUsers('Amazing Grace');
   assert.equal(found[0]?.id, 'U9');
   assert.equal(pages, 2);
+});
+
+test('rewrites a unique @name mention before sending', async () => {
+  const queries: string[] = [];
+  const result = await sendSlackMessage(
+    fakeSlack({
+      searchUsers: async (query) => {
+        queries.push(query);
+        return [{ id: 'U9', name: 'ada', realName: 'Ada Lovelace', deleted: false, bot: false }];
+      },
+      postMessage: async (channel, text) => `${channel}:${text}`,
+    }),
+    '#alerts',
+    'Thanks @Ada.',
+  );
+  assert.equal(result, 'alerts:Thanks <@U9>.');
+  assert.deepEqual(queries, ['Ada']);
+});
+
+test('resolveSlackMentions leaves plain text and emails alone', async () => {
+  const slack = fakeSlack({
+    searchUsers: async () => {
+      throw new Error('should not search');
+    },
+  });
+  assert.equal(await resolveSlackMentions(slack, 'shipped to ada@example.com'), 'shipped to ada@example.com');
+  assert.equal(await resolveSlackMentions(slack, 'already <@U9> mentioned'), 'already <@U9> mentioned');
+});
+
+test('resolveSlackMentions converts a Slack user id mention without searching', async () => {
+  const slack = fakeSlack({
+    searchUsers: async () => {
+      throw new Error('should not search');
+    },
+  });
+  assert.equal(await resolveSlackMentions(slack, 'see @U012ABC'), 'see <@U012ABC>');
+});
+
+test('resolveSlackMentions searches a dotted handle once when repeated', async () => {
+  let searches = 0;
+  const slack = fakeSlack({
+    searchUsers: async (query) => {
+      searches += 1;
+      assert.equal(query, 'ada.lovelace');
+      return [{ id: 'U2', name: 'ada.lovelace', realName: 'Ada Lovelace', deleted: false, bot: false }];
+    },
+  });
+  assert.equal(
+    await resolveSlackMentions(slack, 'cc @ada.lovelace and @Ada.Lovelace'),
+    'cc <@U2> and <@U2>',
+  );
+  assert.equal(searches, 1);
+});
+
+test('resolveSlackMentions refuses broadcast mentions', async () => {
+  const slack = fakeSlack();
+  await assert.rejects(() => resolveSlackMentions(slack, 'heads up @here'), /broadcast mention/);
+  await assert.rejects(() => resolveSlackMentions(slack, 'see <!channel>'), /Broadcast mentions/);
+  await assert.rejects(() => resolveSlackMentions(slack, 'ping @everyone'), /broadcast mention/);
+});
+
+test('resolveSlackMentions refuses missing and ambiguous names', async () => {
+  await assert.rejects(
+    () =>
+      resolveSlackMentions(
+        fakeSlack({
+          searchUsers: async () => [],
+        }),
+        'hey @Nobody',
+      ),
+    /No Slack user matched @Nobody/,
+  );
+  await assert.rejects(
+    () =>
+      resolveSlackMentions(
+        fakeSlack({
+          searchUsers: async () => [
+            { id: 'U1', name: 'ada', realName: 'Ada Lovelace', deleted: false, bot: false },
+            { id: 'U2', name: 'ada2', realName: 'Ada Byron', deleted: false, bot: false },
+          ],
+        }),
+        'hey @Ada',
+      ),
+    /Several people match @Ada/,
+  );
+});
+
+test('does not send when a mention cannot be resolved', async () => {
+  const calls: string[] = [];
+  await assert.rejects(
+    () =>
+      sendSlackMessage(
+        fakeSlack({
+          searchUsers: async () => [],
+          postMessage: async (channel, text) => {
+            calls.push(`${channel}:${text}`);
+            return 'sent';
+          },
+        }),
+        '#alerts',
+        'hey @Nobody',
+      ),
+    /No Slack user matched @Nobody/,
+  );
+  assert.deepEqual(calls, []);
 });
 
 test('createSlackApi looks up email then posts through HTTP', async () => {

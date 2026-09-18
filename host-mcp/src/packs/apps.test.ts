@@ -119,6 +119,9 @@ test('slack tools use the injected Slack API and refuse when the user token is m
   const sent = await wired.handler({ to: '#general', text: 'shipped' });
   assert.equal(sent.isError, undefined);
   assert.match(sent.content[0].type === 'text' ? sent.content[0].text : '', /ok general shipped/);
+  const mentioned = await wired.handler({ to: '#general', text: 'hey @Ada' });
+  assert.equal(mentioned.isError, undefined);
+  assert.match(mentioned.content[0].type === 'text' ? mentioned.content[0].text : '', /ok general hey <@U1>/);
   const listed = await users.handler({ limit: '200' });
   assert.match(listed.content[0].type === 'text' ? listed.content[0].text : '', /Ada Lovelace/);
   assert.doesNotMatch(listed.content[0].type === 'text' ? listed.content[0].text : '', /next_cursor/);

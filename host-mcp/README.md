@@ -28,4 +28,4 @@ Use a **RakaAI agent**, not the plain Ollama chat picker. Packs are split across
 
 Writes to disk stay off until `files.writes` is true in `config.json`. Restart the API after YAML changes: `docker compose restart api`.
 
-Slack stays on this Mac. Messages post as you, so install `host-mcp/slack-manifest.yaml` and put the **User OAuth Token** (`xoxp-...`) in `.env` as `SLACK_USER_TOKEN`. A bot token can still list people. Pick the **RakaAI-Apps** agent to list or search people, list channels, or send to a `#channel`. Sends pause for approval. Do not put tokens in Docker or `librechat.yaml`.
+Slack stays on this Mac. Messages post as you, so install `host-mcp/slack-manifest.yaml` and put the **User OAuth Token** (`xoxp-...`) in `.env` as `SLACK_USER_TOKEN`. A bot token can still list people. Pick the **RakaAI-Apps** agent to list or search people, list channels, or send to a `#channel`. `@name` in the message mentions that person when the name is unique; `@here`, `@channel`, and `@everyone` are refused. Sends pause for approval. Do not put tokens in Docker or `librechat.yaml`.

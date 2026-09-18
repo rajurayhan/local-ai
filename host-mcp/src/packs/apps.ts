@@ -155,11 +155,14 @@ export function createAppsPack(config: DeviceConfig, post: HttpPoster, slack?: S
       {
         name: 'slack_send_message',
         description:
-          'Send a Slack message as the signed-in user to a #channel, a person name, an email, or a Slack user id. Requires SLACK_USER_TOKEN.',
+          'Send a Slack message as the signed-in user to a #channel, a person name, an email, or a Slack user id. @name in the text mentions that person when the name is unique. @here, @channel, and @everyone are refused. Requires SLACK_USER_TOKEN.',
         inputSchema: objectSchema(
           {
             to: { type: 'string', description: '#channel, person name, Slack user id, or email' },
-            text: { type: 'string', description: 'Message text' },
+            text: {
+              type: 'string',
+              description: 'Message text. @name mentions one person; @here, @channel, and @everyone are not allowed.',
+            },
           },
           ['to', 'text'],
         ),

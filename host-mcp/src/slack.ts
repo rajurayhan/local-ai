@@ -79,6 +79,10 @@ type SlackResult = {
 };
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const BROADCAST_NAMES = new Set(['here', 'channel', 'everyone']);
+const BROADCAST_MARKUP = /<!here(?:\|[^>]*)?>|<!channel(?:\|[^>]*)?>|<!everyone(?:\|[^>]*)?>/i;
+const USER_ID = /^[UW][A-Z0-9]+$/i;
+const MENTION_TOKEN = /(?<![A-Za-z0-9._<])@([A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*)/g;
 
 export function classifySlackTo(raw: string): SlackTarget {
   const value = raw.trim();
@@ -91,7 +95,7 @@ export function classifySlackTo(raw: string): SlackTarget {
   if (/^[CGD][A-Z0-9]+$/i.test(value)) {
     return { kind: 'channel', value };
   }
-  if (/^[UW][A-Z0-9]+$/i.test(value)) {
+  if (USER_ID.test(value)) {
     return { kind: 'user', value };
   }
   if (EMAIL.test(value)) {
@@ -180,12 +184,71 @@ export function formatSlackChannels(channels: SlackChannel[], nextCursor?: strin
   return nextCursor ? `${body}\nnext_cursor ${nextCursor}` : body;
 }
 
+function mentionTokenPattern(): RegExp {
+  return new RegExp(MENTION_TOKEN.source, MENTION_TOKEN.flags);
+}
+
+async function resolveMentionToken(slack: SlackApi, token: string): Promise<string> {
+  if (BROADCAST_NAMES.has(token.toLowerCase())) {
+    throw new Error(`@${token} is a broadcast mention and is not allowed`);
+  }
+  if (USER_ID.test(token)) {
+    return `<@${token}>`;
+  }
+
+  const matches = await slack.searchUsers(token);
+  if (matches.length === 1 && matches[0]) {
+    return `<@${matches[0].id}>`;
+  }
+  if (matches.length === 0) {
+    throw new Error(`No Slack user matched @${token}. Try slack_search_users.`);
+  }
+  throw new Error(`Several people match @${token}. Be more specific:\n${formatPeople(matches)}`);
+}
+
+export async function resolveSlackMentions(slack: SlackApi, text: string): Promise<string> {
+  if (BROADCAST_MARKUP.test(text)) {
+    throw new Error('Broadcast mentions are not allowed');
+  }
+
+  const tokenRe = mentionTokenPattern();
+  const tokens: string[] = [];
+  const seen = new Set<string>();
+  for (const match of text.matchAll(tokenRe)) {
+    const token = match[1];
+    if (!token) {
+      continue;
+    }
+    const key = token.toLowerCase();
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    tokens.push(token);
+  }
+  if (tokens.length === 0) {
+    return text;
+  }
+
+  const replacements = new Map<string, string>();
+  for (const token of tokens) {
+    replacements.set(token.toLowerCase(), await resolveMentionToken(slack, token));
+  }
+
+  return text.replace(mentionTokenPattern(), (full, token: string) => replacements.get(token.toLowerCase()) ?? full);
+}
+
 export async function sendSlackMessage(slack: SlackApi, to: string, text: string): Promise<string> {
   const message = text.trim();
   if (message.length === 0) {
     throw new Error('text is required');
   }
   if (message.length > 4000) {
+    throw new Error('text is too long');
+  }
+
+  const resolved = await resolveSlackMentions(slack, message);
+  if (resolved.length > 4000) {
     throw new Error('text is too long');
   }
 
@@ -204,12 +267,12 @@ export async function sendSlackMessage(slack: SlackApi, to: string, text: string
   }
 
   if (target.kind === 'channel') {
-    return slack.postMessage(target.value, message);
+    return slack.postMessage(target.value, resolved);
   }
 
   const userId = target.kind === 'email' ? (await slack.lookupByEmail(target.value)).id : target.value;
   const channel = await slack.openIm(userId);
-  return slack.postMessage(channel, message);
+  return slack.postMessage(channel, resolved);
 }
 
 export const SLACK_MAX_RESPONSE_BYTES = 1024 * 1024;
