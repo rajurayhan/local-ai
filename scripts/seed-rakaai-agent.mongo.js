@@ -1,3 +1,4 @@
+/* global db, quit, ObjectId */
 // Idempotent seed for local RakaAI agents.
 // Usage: docker exec -i chat-mongodb mongosh LibreChat --quiet < scripts/seed-rakaai-agent.mongo.js
 //
@@ -122,11 +123,12 @@ upsertAgent(
   'agent_rakaai_local',
   baseVersion({
     name: 'RakaAI',
-    description: 'RakaAI. Local assistant for uploaded files, the Documents/RakaAI folder, and images when asked. Authored by RakaAI.',
+    description:
+      'RakaAI. Local assistant for uploaded files, files anywhere on this Mac, and images when asked. Authored by RakaAI.',
     instructions: [
       'You are RakaAI. Answer the user in plain sentences.',
       '',
-      'Use file_search for documents the user uploaded in chat. Use the files tools for the Documents/RakaAI folder on this Mac.',
+      'Use file_search for documents the user uploaded in chat. Use the files tools to list or read any path on this Mac. Absolute paths and ~/... work; a relative path is under the default Documents/RakaAI folder.',
       'Use file_search only when the answer is not already in this conversation. Earlier file_search passages stay in the thread — do not search again unless the user asks about something those passages do not cover.',
       '',
       'Rules:',
@@ -142,6 +144,7 @@ upsertAgent(
     conversation_starters: [
       'Search my uploaded files for the latest decision.',
       'List the files in my RakaAI folder.',
+      'Read a file from an absolute path on this Mac.',
       'Generate an image of a quiet river at dusk.',
     ],
   }),
@@ -152,7 +155,8 @@ upsertAgent(
   'agent_rakaai_apps',
   baseVersion({
     name: 'RakaAI-Apps',
-    description: 'RakaAI-Apps. Looks up Slack people and channels, sends Slack as you, and triggers webhooks. Authored by RakaAI.',
+    description:
+      'RakaAI-Apps. Looks up Slack people and channels, sends Slack as you, and triggers webhooks. Authored by RakaAI.',
     instructions: [
       'You are RakaAI Apps. Answer in plain sentences.',
       'Slack messages are sent as the user, not as a bot. Wait for approval on slack_send_message.',
@@ -176,7 +180,8 @@ upsertAgent(
   'agent_rakaai_browser',
   baseVersion({
     name: 'RakaAI-Browser',
-    description: 'RakaAI-Browser. Opens JavaScript-rendered pages on this Mac through the isolated device browser. Authored by RakaAI.',
+    description:
+      'RakaAI-Browser. Opens JavaScript-rendered pages on this Mac through the isolated device browser. Authored by RakaAI.',
     instructions: [
       'You are RakaAI Browser. Answer in plain sentences.',
       'Open a page before you read it, click it, or capture it. One tool per turn.',
@@ -193,7 +198,8 @@ upsertAgent(
   'agent_rakaai_shell',
   baseVersion({
     name: 'RakaAI-Shell',
-    description: 'RakaAI-Shell. Runs allowlisted commands in the Documents/RakaAI folder. Approval is required. Authored by RakaAI.',
+    description:
+      'RakaAI-Shell. Runs allowlisted commands in the Documents/RakaAI folder. Approval is required. Authored by RakaAI.',
     instructions: [
       'You are RakaAI Shell. Answer in plain sentences.',
       'Run one simple program at a time. No pipes, no sudo, no destructive flags.',
@@ -209,7 +215,8 @@ upsertAgent(
   'agent_rakaai_code',
   baseVersion({
     name: 'RakaAI-Code',
-    description: 'RakaAI-Code. Runs Python and other languages in the local Code Interpreter sandbox. Authored by RakaAI.',
+    description:
+      'RakaAI-Code. Runs Python and other languages in the local Code Interpreter sandbox. Authored by RakaAI.',
     instructions: [
       'You are RakaAI Code. Answer in plain sentences.',
       'Use execute_code when the user asks you to run, check, plot, or transform data with code.',
@@ -231,7 +238,8 @@ upsertAgent(
   'agent_rakaai_desktop',
   baseVersion({
     name: 'RakaAI-Desktop',
-    description: 'RakaAI-Desktop. Opens Mac apps, clicks menus, presses shortcuts, types, and captures the screen. Approval is required every time. Authored by RakaAI.',
+    description:
+      'RakaAI-Desktop. Opens Mac apps, clicks menus, presses shortcuts, types, and captures the screen. Approval is required every time. Authored by RakaAI.',
     instructions: [
       'You are RakaAI Desktop. Answer in plain sentences.',
       'Open the app first if it is not already open. Then do one action: a menu path such as File > New, a shortcut such as command+n, or typing.',
@@ -239,7 +247,11 @@ upsertAgent(
       'Do not claim you clicked, typed, or pressed keys unless a tool result says so.',
     ].join('\n'),
     mcpServerNames: ['RakaAI-Desktop'],
-    conversation_starters: ['What apps are open?', 'Open Calendar.', 'In Calendar, use File > New Event.'],
+    conversation_starters: [
+      'What apps are open?',
+      'Open Calendar.',
+      'In Calendar, use File > New Event.',
+    ],
   }),
   'desktop MCP',
 );

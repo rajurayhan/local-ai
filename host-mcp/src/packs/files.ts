@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { resolveInsideRoot } from '../paths.ts';
+import { resolveInsideRoot, resolveUserPath } from '../paths.ts';
 import { fail, objectSchema, ok } from '../result.ts';
 import type { DeviceConfig, PackDraft } from '../types.ts';
 
@@ -9,13 +9,18 @@ export function createFilesPack(config: DeviceConfig): PackDraft {
   const tools: PackDraft['tools'] = [
     {
       name: 'list_directory',
-      description: 'List files and folders under the allowed folder. Path is relative to that folder.',
+      description:
+        'List files and folders on this Mac. Path can be absolute, ~/..., or relative to the default folder. Use . for the default folder.',
       inputSchema: objectSchema({
-        path: { type: 'string', description: 'Relative folder path. Use . for the root.' },
+        path: {
+          type: 'string',
+          description:
+            'Folder path. Absolute, ~/..., or relative to the default folder. Use . for the default folder.',
+        },
       }),
       handler: async (args) => {
         try {
-          const target = resolveInsideRoot(config.files.root, String(args.path ?? '.'));
+          const target = resolveUserPath(String(args.path ?? '.'), config.files.root);
           const stat = fs.statSync(target);
           if (!stat.isDirectory()) {
             return fail('Not a directory');
@@ -40,16 +45,20 @@ export function createFilesPack(config: DeviceConfig): PackDraft {
     },
     {
       name: 'read_file',
-      description: 'Read a text file under the allowed folder. Path is relative to that folder.',
+      description:
+        'Read a text file on this Mac. Path can be absolute, ~/..., or relative to the default folder.',
       inputSchema: objectSchema(
         {
-          path: { type: 'string', description: 'Relative file path' },
+          path: {
+            type: 'string',
+            description: 'File path. Absolute, ~/..., or relative to the default folder.',
+          },
         },
         ['path'],
       ),
       handler: async (args) => {
         try {
-          const target = resolveInsideRoot(config.files.root, String(args.path));
+          const target = resolveUserPath(String(args.path), config.files.root);
           const stat = fs.statSync(target);
           if (!stat.isFile()) {
             return fail('Not a file');

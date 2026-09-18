@@ -14,7 +14,7 @@ export const PACK_SHARE_NAMES = {
 } as const satisfies Record<PackName, string>;
 
 const SUMMARIES: Record<PackName, string> = {
-  files: 'Read files under the allowed folder on this Mac.',
+  files: 'Read files anywhere on this Mac.',
   shell: 'Run one allowlisted program in the allowed folder.',
   browser: 'Open JavaScript-rendered pages in an isolated browser and return visible text.',
   desktop: 'Open Mac apps, click menus, press shortcuts, type, and capture the screen.',

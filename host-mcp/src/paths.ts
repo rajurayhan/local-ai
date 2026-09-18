@@ -19,16 +19,14 @@ export function osHome(): string {
   return home;
 }
 
-export function resolveInsideRoot(root: string, userPath: string): string {
-  if (typeof userPath !== 'string' || userPath.length === 0) {
-    throw new Error('Path is required');
-  }
-  if (userPath.includes('\0')) {
-    throw new Error('Path is not allowed');
-  }
+export function resolveUserPath(userPath: string, fallbackRoot?: string): string {
+  const requested = requestedPath(userPath, fallbackRoot);
+  return existingRealpath(requested) ?? requested;
+}
 
+export function resolveInsideRoot(root: string, userPath: string): string {
   const rootReal = fs.realpathSync(expandHome(root));
-  const requested = path.resolve(rootReal, userPath);
+  const requested = requestedPath(userPath, rootReal);
   const existing = existingRealpath(requested);
   const resolved = existing ?? requested;
 
@@ -45,6 +43,22 @@ export function resolveInsideRoot(root: string, userPath: string): string {
   }
 
   return existing;
+}
+
+function requestedPath(userPath: string, fallbackRoot?: string): string {
+  if (typeof userPath !== 'string' || userPath.length === 0) {
+    throw new Error('Path is required');
+  }
+  if (userPath.includes('\0')) {
+    throw new Error('Path is not allowed');
+  }
+
+  const expanded = expandHome(userPath);
+  if (path.isAbsolute(expanded)) {
+    return path.resolve(expanded);
+  }
+
+  return path.resolve(expandHome(fallbackRoot ?? osHome()), expanded);
 }
 
 export function isInsideRoot(rootReal: string, candidate: string): boolean {

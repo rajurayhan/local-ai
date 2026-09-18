@@ -56,6 +56,12 @@ if "mcp:RakaAI-Apps:slack_send_message" not in text and "mcp:RakaAI-Apps:trigger
     )
     changed = True
 
+old_files = "RakaAI-Files: Read files under the allowed folder on this Mac."
+new_files = "RakaAI-Files: Read files anywhere on this Mac."
+if old_files in text:
+    text = text.replace(old_files, new_files)
+    changed = True
+
 old_apps = "RakaAI-Apps: Trigger configured app webhooks such as n8n."
 new_apps = "RakaAI-Apps: Send Slack messages and trigger configured app webhooks such as n8n."
 if old_apps in text:

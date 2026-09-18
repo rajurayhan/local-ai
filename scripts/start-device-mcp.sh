@@ -25,7 +25,7 @@ require_cmd python3
 
 mkdir -p "$ROOT_FOLDER/screenshots"
 if [[ ! -f "$ROOT_FOLDER/README.txt" ]]; then
-  printf '%s\n' 'This folder is what the RakaAI files agent can read on this Mac.' > "$ROOT_FOLDER/README.txt"
+  printf '%s\n' 'This is the default folder for relative paths. RakaAI-Files can also read any other path on this Mac.' > "$ROOT_FOLDER/README.txt"
 fi
 
 if [[ ! -f "$ROOT_DIR/.env" ]]; then

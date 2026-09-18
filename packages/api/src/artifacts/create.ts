@@ -1,6 +1,6 @@
 import { Tools } from 'librechat-data-provider';
 
-export const CREATE_ARTIFACT_TOOL_NAME = Tools.create_artifact;
+export const CREATE_ARTIFACT_TOOL_NAME: string = Tools.create_artifact;
 
 export const CREATE_ARTIFACT_TYPES = [
   'text/html',
@@ -41,7 +41,7 @@ export const CREATE_ARTIFACT_TITLE_MAX = 120;
 export const CREATE_ARTIFACT_CONTENT_MAX = 200_000;
 export const CREATE_ARTIFACT_IDENTIFIER_MAX = 80;
 
-export const CREATE_ARTIFACT_TOOL_HINT =
+export const CREATE_ARTIFACT_TOOL_HINT: string =
   'To show a page, document, diagram, or component in the side panel, call create_artifact with title, content, and type. Do not invent other artifact tool names.';
 
 const EXTENSION_BY_TYPE: Record<CreateArtifactType, string> = {
@@ -68,10 +68,7 @@ export function slugifyArtifactIdentifier(value: string): string {
   return slug.length > 0 ? slug : 'artifact';
 }
 
-export function withCreateArtifactTool(
-  tools: string[] | undefined,
-  artifacts?: string,
-): string[] {
+export function withCreateArtifactTool(tools: string[] | undefined, artifacts?: string): string[] {
   const next = [...(tools ?? [])];
   if (typeof artifacts !== 'string' || artifacts === '') {
     return next;

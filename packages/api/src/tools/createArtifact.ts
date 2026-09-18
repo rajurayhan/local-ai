@@ -9,7 +9,7 @@ import {
   createArtifact,
 } from '~/artifacts/create';
 
-export const CREATE_ARTIFACT_TOOL_DESCRIPTION = [
+export const CREATE_ARTIFACT_TOOL_DESCRIPTION: string = [
   'Show a page, document, diagram, or component in the side panel.',
   'Use this instead of writing artifact fences or inventing other artifact tool names.',
   `type must be one of: ${CREATE_ARTIFACT_TYPES.join(', ')}.`,

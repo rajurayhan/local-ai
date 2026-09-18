@@ -6,7 +6,7 @@ mcpSettings:
 mcpServers:
   RakaAI-Files:
     title: RakaAI-Files
-    description: 'RakaAI-Files: Read files under the allowed folder on this Mac. Authored by RakaAI <raju@sulus.ai>.'
+    description: 'RakaAI-Files: Read files anywhere on this Mac. Authored by RakaAI <raju@sulus.ai>.'
     type: streamable-http
     url: http://host.docker.internal:8765/mcp/files
     timeout: 60000
