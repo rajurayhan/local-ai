@@ -1770,6 +1770,35 @@ describe('initializeAgent — explicit image tool gating', () => {
     );
   });
 
+  it('reads the user turn from req.body when the MCP init body omitted text', async () => {
+    const { agent, req, res, loadTools, db } = createMocks();
+    agent.tools = [Tools.file_search, 'stable-diffusion'];
+    req.body = { text: 'Can you generate an Image potraying him?' };
+    req.config = {
+      endpoints: { agents: { requireExplicitImageRequest: true } },
+    } as unknown as ServerRequest['config'];
+
+    await initializeAgent(
+      {
+        req,
+        res,
+        agent,
+        loadTools,
+        requestBody: { conversationId: 'conv-1', messageId: 'msg-1' },
+        endpointOption: { endpoint: EModelEndpoint.agents },
+        allowedProviders: new Set([agent.provider]),
+        isInitialAgent: true,
+      },
+      db,
+    );
+
+    expect(loadTools).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tools: [Tools.file_search, 'stable-diffusion'],
+      }),
+    );
+  });
+
   it('keeps image tools when the user asked for an image', async () => {
     const { agent, req, res, loadTools, db } = createMocks();
     agent.tools = [Tools.file_search, 'stable-diffusion'];

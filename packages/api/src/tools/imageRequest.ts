@@ -21,9 +21,27 @@ export function isImageGenerationRequest(text: string | null | undefined): boole
   return IMAGE_REQUEST_PATTERN.test(text);
 }
 
+/** MCP init bodies omit `text`; the Express body still has the user turn. */
+export function extractLatestUserText({
+  requestBodyText,
+  reqBodyText,
+}: {
+  requestBodyText?: unknown;
+  reqBodyText?: unknown;
+}): string {
+  for (const value of [requestBodyText, reqBodyText]) {
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return value;
+    }
+  }
+  return '';
+}
+
 /**
  * Drops image-generation tools unless this turn asked for an image.
  * Off (`requireExplicitRequest: false`) returns the list unchanged.
+ * If every remaining tool would be an image tool, keep them — an image-only
+ * agent must still be able to generate.
  */
 export function gateImageGenerationTools({
   tools,
@@ -37,5 +55,9 @@ export function gateImageGenerationTools({
   if (!requireExplicitRequest || isImageGenerationRequest(userText)) {
     return [...tools];
   }
-  return tools.filter((tool) => !isImageGenerationTool(tool));
+  const withoutImage = tools.filter((tool) => !isImageGenerationTool(tool));
+  if (withoutImage.length === 0 && tools.some((tool) => isImageGenerationTool(tool))) {
+    return [...tools];
+  }
+  return withoutImage;
 }

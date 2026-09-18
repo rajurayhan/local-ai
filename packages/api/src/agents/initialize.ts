@@ -62,7 +62,7 @@ import type { TextContentFragment } from '../protection/types';
 import type { CheckAccessParams } from '../middleware/access';
 import type { MCPToolAlias } from '~/tools/classification';
 import type { AgentExecutionContext } from './runtime';
-import { gateImageGenerationTools } from '~/tools/imageRequest';
+import { extractLatestUserText, gateImageGenerationTools } from '~/tools/imageRequest';
 import {
   injectSkillCatalog,
   resolveSkillCatalog,
@@ -1907,7 +1907,10 @@ export async function initializeAgent(
    */
   const requireExplicitImageRequest =
     appConfig?.endpoints?.agents?.requireExplicitImageRequest === true;
-  const userText = typeof requestBody?.text === 'string' ? requestBody.text : '';
+  const userText = extractLatestUserText({
+    requestBodyText: requestBody?.text,
+    reqBodyText: params.req?.body?.text,
+  });
   const toolsForTurn = (tools: string[]) =>
     gateImageGenerationTools({
       tools,

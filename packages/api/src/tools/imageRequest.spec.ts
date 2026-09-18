@@ -1,4 +1,8 @@
-import { gateImageGenerationTools, isImageGenerationRequest } from './imageRequest';
+import {
+  extractLatestUserText,
+  gateImageGenerationTools,
+  isImageGenerationRequest,
+} from './imageRequest';
 
 describe('isImageGenerationRequest', () => {
   it.each([
@@ -9,6 +13,8 @@ describe('isImageGenerationRequest', () => {
     'an image of a red bicycle',
     'regenerate the image with warmer light',
     'use stable-diffusion for a portrait',
+    'Can you generate an Image potraying him?',
+    'Now Generate the Image',
   ])('detects %s', (text) => {
     expect(isImageGenerationRequest(text)).toBe(true);
   });
@@ -57,5 +63,26 @@ describe('gateImageGenerationTools', () => {
         requireExplicitRequest: true,
       }),
     ).toEqual(tools);
+  });
+
+  it('keeps image tools when that is all the agent has', () => {
+    expect(
+      gateImageGenerationTools({
+        tools: ['stable-diffusion'],
+        userText: 'What is his current role?',
+        requireExplicitRequest: true,
+      }),
+    ).toEqual(['stable-diffusion']);
+  });
+});
+
+describe('extractLatestUserText', () => {
+  it('falls back to the Express body when the MCP init body omitted text', () => {
+    expect(
+      extractLatestUserText({
+        requestBodyText: undefined,
+        reqBodyText: 'Can you generate an Image potraying him?',
+      }),
+    ).toBe('Can you generate an Image potraying him?');
   });
 });
