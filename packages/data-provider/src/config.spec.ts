@@ -63,6 +63,15 @@ describe('ask user retained answers', () => {
   });
 });
 
+describe('explicit image-request tool gating', () => {
+  it('leaves image tools visible every turn unless an operator opts in', () => {
+    expect(agentsEndpointSchema.parse({}).requireExplicitImageRequest).toBe(false);
+    expect(
+      agentsEndpointSchema.parse({ requireExplicitImageRequest: true }).requireExplicitImageRequest,
+    ).toBe(true);
+  });
+});
+
 describe('retained tool-count ceiling', () => {
   it('ships the exact-count budget a deployment can raise or lower', () => {
     /** The save path tokenizes a stopped turn's retained tool results to add an

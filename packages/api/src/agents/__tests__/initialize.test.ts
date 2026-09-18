@@ -1737,6 +1737,68 @@ describe('initializeAgent — attachment scoping', () => {
   });
 });
 
+describe('initializeAgent — explicit image tool gating', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('omits image tools when the turn is not an image request', async () => {
+    const { agent, req, res, loadTools, db } = createMocks();
+    agent.tools = [Tools.file_search, 'stable-diffusion'];
+    req.config = {
+      endpoints: { agents: { requireExplicitImageRequest: true } },
+    } as unknown as ServerRequest['config'];
+
+    await initializeAgent(
+      {
+        req,
+        res,
+        agent,
+        loadTools,
+        requestBody: { text: 'What is his current role?' },
+        endpointOption: { endpoint: EModelEndpoint.agents },
+        allowedProviders: new Set([agent.provider]),
+        isInitialAgent: true,
+      },
+      db,
+    );
+
+    expect(loadTools).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tools: [Tools.file_search],
+      }),
+    );
+  });
+
+  it('keeps image tools when the user asked for an image', async () => {
+    const { agent, req, res, loadTools, db } = createMocks();
+    agent.tools = [Tools.file_search, 'stable-diffusion'];
+    req.config = {
+      endpoints: { agents: { requireExplicitImageRequest: true } },
+    } as unknown as ServerRequest['config'];
+
+    await initializeAgent(
+      {
+        req,
+        res,
+        agent,
+        loadTools,
+        requestBody: { text: 'Generate an image of a quiet river at dusk' },
+        endpointOption: { endpoint: EModelEndpoint.agents },
+        allowedProviders: new Set([agent.provider]),
+        isInitialAgent: true,
+      },
+      db,
+    );
+
+    expect(loadTools).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tools: [Tools.file_search, 'stable-diffusion'],
+      }),
+    );
+  });
+});
+
 describe('initializeAgent — maxContextTokens', () => {
   beforeEach(() => {
     jest.clearAllMocks();

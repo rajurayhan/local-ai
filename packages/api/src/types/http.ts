@@ -13,6 +13,8 @@ import type { Request } from 'express';
  * (have to use type alias because you can't extend indexed access types like Request['body'])
  */
 export type RequestBody = {
+  /** Latest user turn text. Used to decide whether image-generation tools are offered. */
+  text?: string;
   messageId?: string;
   fileTokenLimit?: number;
   conversationId?: string;

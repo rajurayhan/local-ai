@@ -62,6 +62,7 @@ import type { TextContentFragment } from '../protection/types';
 import type { CheckAccessParams } from '../middleware/access';
 import type { MCPToolAlias } from '~/tools/classification';
 import type { AgentExecutionContext } from './runtime';
+import { gateImageGenerationTools } from '~/tools/imageRequest';
 import {
   injectSkillCatalog,
   resolveSkillCatalog,
@@ -1904,11 +1905,21 @@ export async function initializeAgent(
    * the retry-without-extras also fails, propagate / fall through with
    * the empty fallback — the agent's own tools are the problem.
    */
+  const requireExplicitImageRequest =
+    appConfig?.endpoints?.agents?.requireExplicitImageRequest === true;
+  const userText = typeof requestBody?.text === 'string' ? requestBody.text : '';
+  const toolsForTurn = (tools: string[]) =>
+    gateImageGenerationTools({
+      tools,
+      userText,
+      requireExplicitRequest: requireExplicitImageRequest,
+    });
+
   const callLoadTools = async (tools: string[]) =>
     loadTools?.({
       provider,
       agentId: agent.id,
-      tools,
+      tools: toolsForTurn(tools),
       model: agent.model,
       tool_options: agent.tool_options,
       tool_resources,

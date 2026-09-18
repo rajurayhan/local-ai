@@ -1,5 +1,9 @@
-// Idempotent seed for the local RakaAI agent (file_search + stable-diffusion).
+// Idempotent seed for the local RakaAI agent (file_search + gated image gen).
 // Usage: docker exec -i chat-mongodb mongosh LibreChat --quiet < scripts/seed-rakaai-agent.mongo.js
+//
+// Image tools stay on the agent, but initializeAgent hides them unless the
+// current message asks for an image (`endpoints.agents.requireExplicitImageRequest`).
+// Do not mention prompt/keyword schemas in instructions — a 7B model will copy them.
 
 const AGENT_ID = 'agent_rakaai_local';
 const now = new Date();
@@ -10,29 +14,23 @@ if (!user) {
   quit(0);
 }
 
-const existing = db.agents.findOne({ id: AGENT_ID });
-if (existing) {
-  const tools = existing.tools || [];
-  const needed = ['file_search', 'stable-diffusion'];
-  const missing = needed.filter((tool) => !tools.includes(tool));
-  if (missing.length === 0) {
-    print(`Agent ${AGENT_ID} already has file_search and stable-diffusion.`);
-    quit(0);
-  }
-  db.agents.updateOne(
-    { id: AGENT_ID },
-    { $addToSet: { tools: { $each: needed } }, $set: { updatedAt: now } },
-  );
-  print(`Updated ${AGENT_ID} tools: ${missing.join(', ')}`);
-  quit(0);
-}
+const instructions = [
+  'You are RakaAI. Answer the user in plain sentences.',
+  '',
+  'Use file_search only when the answer is not already in this conversation. Earlier file_search passages stay in the thread — follow-up questions about the same person or document must use those passages. Do not search again unless the user asks about something those passages do not cover.',
+  '',
+  'Rules:',
+  '- After file_search, answer the question. Do not list keywords.',
+  '- Do not output JSON, prompt objects, or comma-separated keyword lists.',
+  '- If the passages do not contain the answer, say you could not find it in the files.',
+  '- Do not invent facts that are not in the passages or the conversation.',
+  '- You cannot search the web. Do not claim that you did.',
+].join('\n');
 
-const agentOid = ObjectId();
 const version = {
   name: 'RakaAI',
-  description: 'Local assistant: search uploaded files and generate images with Flux.',
-  instructions:
-    'You are RakaAI, a local assistant on this Mac.\n\nUse file_search when the user asks about uploaded documents or files attached to this conversation or agent.\nUse stable-diffusion only when the user asks to generate an image. Write a clear visual prompt.\n\nYou do not have web search. Do not claim you looked something up online.',
+  description: 'Local assistant that answers from uploaded files and can generate images when asked.',
+  instructions,
   provider: 'RakaAI',
   model: 'qwen2.5:7b',
   artifacts: '',
@@ -56,16 +54,43 @@ const version = {
   edges: [],
   end_after_tools: false,
   hide_sequential_outputs: false,
-  createdAt: now,
-  updatedAt: now,
 };
 
+const existing = db.agents.findOne({ id: AGENT_ID });
+if (existing) {
+  const sameTools =
+    JSON.stringify(existing.tools || []) === JSON.stringify(version.tools) &&
+    JSON.stringify(existing.mcpServerNames || []) === JSON.stringify(version.mcpServerNames) &&
+    existing.instructions === version.instructions &&
+    existing.description === version.description;
+  if (sameTools) {
+    print(`Agent ${AGENT_ID} already synced (file_search + gated image gen).`);
+    quit(0);
+  }
+
+  db.agents.updateOne(
+    { id: AGENT_ID },
+    {
+      $set: {
+        ...version,
+        updatedAt: now,
+      },
+      $push: {
+        versions: { ...version, createdAt: now, updatedAt: now },
+      },
+    },
+  );
+  print(`Updated ${AGENT_ID}: file_search + gated stable-diffusion.`);
+  quit(0);
+}
+
+const agentOid = ObjectId();
 db.agents.insertOne({
   _id: agentOid,
   id: AGENT_ID,
   author: user._id,
   ...version,
-  versions: [version],
+  versions: [{ ...version, createdAt: now, updatedAt: now }],
   createdAt: now,
   updatedAt: now,
 });
