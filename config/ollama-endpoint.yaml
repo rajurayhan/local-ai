@@ -1,0 +1,10 @@
+    - name: 'Ollama'
+      apiKey: 'ollama'
+      baseURL: 'http://host.docker.internal:11434/v1/'
+      models:
+        default:
+          - 'llama3.1:8b'
+        fetch: true
+      titleConvo: true
+      titleModel: 'current_model'
+      modelDisplayLabel: 'Ollama'
