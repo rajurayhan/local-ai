@@ -21,6 +21,10 @@ jest.mock('~/hooks', () => ({
       com_ui_via_server: `via ${values?.[0]}`,
       com_ui_tool_failed: 'failed',
       com_ui_tool_name_set_memory: 'Save Memory',
+      com_ui_browser: 'Browser',
+      com_ui_browser_close: 'Close browser',
+      com_ui_browser_open: 'Open page',
+      com_ui_browser_page: 'Page',
     };
     return translations[key] || key;
   },
@@ -95,6 +99,7 @@ jest.mock('@librechat/client', () => ({
 jest.mock('lucide-react', () => ({
   ChevronDown: () => <span>{'ChevronDown'}</span>,
   ChevronUp: () => <span>{'ChevronUp'}</span>,
+  Globe: () => <span>{'Globe'}</span>,
   TriangleAlert: () => <span>{'TriangleAlert'}</span>,
 }));
 
@@ -288,6 +293,30 @@ describe('ToolCall', () => {
         <ToolCall {...mockProps} attachments={attachments as any} hideAttachments />,
       );
 
+      expect(screen.queryByTestId('attachment-group')).not.toBeInTheDocument();
+    });
+
+    it('pins a RakaAI-Browser screenshot to the browser row instead of the attachment group', () => {
+      const attachments = [
+        {
+          filename: 'open_page_img.png',
+          filepath: '/images/open_page_img.png',
+          file_id: 'file-1',
+          width: 1280,
+          height: 720,
+        },
+      ];
+
+      renderWithRecoil(
+        <ToolCall
+          {...mockProps}
+          name={`open_page${Constants.mcp_delimiter}RakaAI-Browser`}
+          output={'https://example.com/docs\n\nHello'}
+          attachments={attachments as any}
+        />,
+      );
+
+      expect(screen.getByRole('button', { name: /example.com\/docs/ })).toBeInTheDocument();
       expect(screen.queryByTestId('attachment-group')).not.toBeInTheDocument();
     });
 

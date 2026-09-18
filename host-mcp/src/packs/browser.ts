@@ -37,7 +37,7 @@ export function createBrowserPack(config: DeviceConfig, createSession: BrowserFa
             const url = assertHttpUrl(String(args.url), config.browser.allowedDomains);
             const browser = await ensureSession();
             const text = await browser.open(url.toString());
-            return ok(text);
+            return withScreenshot(browser, text);
           } catch (error) {
             return fail(error instanceof Error ? error.message : 'Could not open page');
           }
@@ -72,7 +72,7 @@ export function createBrowserPack(config: DeviceConfig, createSession: BrowserFa
             if (session == null) {
               return fail('No page is open. Call open_page first.');
             }
-            return ok(await session.click(String(args.selector)));
+            return withScreenshot(session, await session.click(String(args.selector)));
           } catch (error) {
             return fail(error instanceof Error ? error.message : 'Click failed');
           }
@@ -101,4 +101,18 @@ export function createBrowserPack(config: DeviceConfig, createSession: BrowserFa
       },
     ],
   };
+}
+
+async function withScreenshot(session: BrowserSession, text: string): Promise<ToolResult> {
+  try {
+    const shot = await session.screenshot();
+    return {
+      content: [
+        { type: 'text', text: `${shot.note}\n\n${text}` },
+        { type: 'image', data: shot.png.toString('base64'), mimeType: 'image/png' },
+      ],
+    };
+  } catch {
+    return ok(text);
+  }
 }

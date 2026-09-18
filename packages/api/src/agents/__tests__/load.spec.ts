@@ -792,6 +792,30 @@ describe('loadAgent', () => {
     expect(result?.subagents).toBeUndefined();
   });
 
+  test('adds create_artifact when the ephemeral agent has artifacts enabled', async () => {
+    const { EPHEMERAL_AGENT_ID } = Constants;
+
+    const result = await loadAgent(
+      {
+        req: {
+          user: { id: 'user123' },
+          body: {
+            ephemeralAgent: {
+              artifacts: 'default',
+            } as TEphemeralAgent,
+          },
+        },
+        agent_id: EPHEMERAL_AGENT_ID as string,
+        endpoint: 'openai',
+        model_parameters: { model: 'gpt-4' } as unknown as AgentModelParameters,
+      },
+      deps,
+    );
+
+    expect(result?.artifacts).toBe('default');
+    expect(result?.tools).toContain('create_artifact');
+  });
+
   test('should ignore request subagents when added agent mirrors ephemeral primary tools', async () => {
     const { EPHEMERAL_AGENT_ID } = Constants;
 
@@ -1071,6 +1095,30 @@ describe('loadAgent', () => {
     );
 
     expect(result?.tools).toContain('ask_user_question');
+  });
+
+  test('adds create_artifact for added agents when artifacts are enabled', async () => {
+    const result = await loadAddedAgent(
+      {
+        req: {
+          user: { id: 'user123' },
+          config: {
+            config: {},
+            fileStrategy: FileSources.local,
+            imageOutputType: 'png',
+          },
+        },
+        conversation: {
+          endpoint: 'openai',
+          model: 'gpt-4',
+          ephemeralAgent: { artifacts: 'default' },
+        } as unknown as TConversation,
+      },
+      deps,
+    );
+
+    expect(result?.artifacts).toBe('default');
+    expect(result?.tools).toContain('create_artifact');
   });
 
   test('should handle ephemeral agent with undefined ephemeralAgent in body', async () => {

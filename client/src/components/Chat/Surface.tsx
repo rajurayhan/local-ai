@@ -31,7 +31,7 @@ export default function AppChatSurface({ children }: { children: ReactNode }) {
       maximizeChatSpace,
       showScrollButton,
       composerBindings,
-      /** The artifacts panel and the subagent panel share one slot. */
+      /** Artifacts, the browser viewport, and the subagent panel share one slot. */
       claimForeground: () => {
         resetCurrentArtifactId();
         setArtifactsVisible(false);

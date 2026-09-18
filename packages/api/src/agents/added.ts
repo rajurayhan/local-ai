@@ -20,6 +20,7 @@ import { ASK_USER_QUESTION_TOOL_NAME } from '~/agents/hitl/askUserQuestionTool';
 import { synthesizeBackgroundToolOptions } from '~/agents/background';
 import { mergeSynthesizedToolOptions } from '~/agents/selection';
 import { synthesizeIntentToolOptions } from '~/agents/intent';
+import { withCreateArtifactTool } from '~/artifacts/create';
 import { getCustomEndpointConfig } from '~/app/config';
 
 const { mcp_all, mcp_delimiter } = Constants;
@@ -306,6 +307,7 @@ export async function loadAddedAgent(
 
   if (ephemeralAgent?.artifacts != null && ephemeralAgent.artifacts) {
     result.artifacts = ephemeralAgent.artifacts;
+    result.tools = withCreateArtifactTool(tools, String(ephemeralAgent.artifacts));
   }
   applyModelSpecSubagents(result, modelSpec);
   applyModelSpecSkills(result, modelSpec);

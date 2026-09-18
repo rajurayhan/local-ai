@@ -27,6 +27,8 @@ const {
   HOST_FILE_AUTHORING_ARTIFACT_KEY,
   isCodeSessionToolName,
   isCodeArtifactToolOutput,
+  buildCreateArtifactAttachment,
+  readCreateArtifactFile,
   getModelRefusalInfo,
   shouldSignalSandboxStart,
   getToolInputValidationDetails,
@@ -40,6 +42,19 @@ const { saveBase64Image } = require('~/server/services/Files/process');
 
 function isHostFileAuthoringArtifact(artifact) {
   return artifact?.[HOST_FILE_AUTHORING_ARTIFACT_KEY] === true;
+}
+
+function createArtifactAttachment(output, metadata) {
+  const file = readCreateArtifactFile(output?.artifact);
+  if (!file) {
+    return null;
+  }
+  return buildCreateArtifactAttachment({
+    file,
+    messageId: metadata?.run_id ?? '',
+    toolCallId: output.tool_call_id,
+    conversationId: metadata?.thread_id ?? '',
+  });
 }
 
 function getAttachmentOwnership(metadata) {
@@ -997,6 +1012,25 @@ function createToolEndCallback({ req, res, artifactPromises, streamId = null, jo
       );
     }
 
+    if (output.artifact[Tools.create_artifact]) {
+      artifactPromises.push(
+        (async () => {
+          const attachment = createArtifactAttachment(output, metadata);
+          if (!attachment) {
+            return null;
+          }
+          if (!streamId && !res.headersSent) {
+            return attachment;
+          }
+          writeAttachment(res, streamId, attachment, jobCreatedAt);
+          return attachment;
+        })().catch((error) => {
+          logger.error('Error processing create_artifact attachment:', error);
+          return null;
+        }),
+      );
+    }
+
     if (output.artifact[Tools.ui_resources]) {
       artifactPromises.push(
         (async () => {
@@ -1358,6 +1392,24 @@ function createResponsesToolEndCallback({ req, res, tracker, artifactPromises })
           return attachment;
         })().catch((error) => {
           logger.error('Error processing file citations:', error);
+          return null;
+        }),
+      );
+    }
+
+    if (output.artifact[Tools.create_artifact]) {
+      artifactPromises.push(
+        (async () => {
+          const attachment = createArtifactAttachment(output, metadata);
+          if (!attachment) {
+            return null;
+          }
+          if (res.headersSent && !res.writableEnded) {
+            writeResponsesAttachment(res, tracker, attachment, metadata);
+          }
+          return attachment;
+        })().catch((error) => {
+          logger.error('Error processing create_artifact attachment:', error);
           return null;
         }),
       );

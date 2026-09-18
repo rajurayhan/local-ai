@@ -47,7 +47,9 @@ function upsertAgent(id, version, label) {
       JSON.stringify(existing.tools || []) === JSON.stringify(version.tools) &&
       JSON.stringify(existing.mcpServerNames || []) === JSON.stringify(version.mcpServerNames) &&
       existing.instructions === version.instructions &&
-      existing.description === version.description;
+      existing.description === version.description &&
+      existing.artifacts === version.artifacts &&
+      Boolean(existing.stateful_code_sessions) === Boolean(version.stateful_code_sessions);
     if (same) {
       print(`Agent ${id} already synced (${label}).`);
       return;
@@ -134,6 +136,7 @@ upsertAgent(
       '- Do not invent facts.',
       '- You cannot search the web. Do not claim that you did.',
     ].join('\n'),
+    artifacts: 'default',
     tools: ['file_search', 'stable-diffusion'],
     mcpServerNames: ['RakaAI-Files'],
     conversation_starters: [
@@ -214,7 +217,7 @@ upsertAgent(
       'If code fails, read the error and try once more with a smaller program.',
     ].join('\n'),
     tools: ['execute_code'],
-    stateful_code_sessions: true,
+    stateful_code_sessions: false,
     stateful_code_environment: 'user',
     conversation_starters: [
       'Run a Python snippet that prints 2 + 2.',

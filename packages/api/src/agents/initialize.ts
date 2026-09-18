@@ -123,6 +123,7 @@ import { hasActiveFileFieldPolicy } from '~/protection';
 import { PARTIAL_RESOLVED_CONVERSATION } from './guard';
 import { applyBackgroundToolCalls } from './background';
 import { applyTurnDelivery } from './files/delivery';
+import { CREATE_ARTIFACT_TOOL_HINT, withCreateArtifactTool } from '~/artifacts/create';
 import { generateArtifactsPrompt } from '~/prompts';
 import { getProviderConfig } from '~/endpoints';
 import { primeResources } from './resources';
@@ -1883,7 +1884,7 @@ export async function initializeAgent(
     }
   }
 
-  const baseToolNames = agent.tools ?? [];
+  const baseToolNames = withCreateArtifactTool(agent.tools, agent.artifacts);
   const requestedToolNames =
     extraAllowedToolNames.length > 0 ? [...baseToolNames, ...extraAllowedToolNames] : baseToolNames;
 
@@ -2304,6 +2305,7 @@ export async function initializeAgent(
       artifacts: agent.artifacts as never,
     });
     appendAdditionalInstructions(agent, artifactsPromptResult);
+    appendAdditionalInstructions(agent, CREATE_ARTIFACT_TOOL_HINT);
   }
 
   let skillCount = 0;

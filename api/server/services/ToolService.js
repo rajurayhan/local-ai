@@ -881,6 +881,9 @@ async function loadToolDefinitionsWrapper({
     if (tool === ASK_USER_QUESTION_TOOL_NAME) {
       return checkCapability(AgentCapabilities.ask_user_question);
     }
+    if (tool === Tools.create_artifact) {
+      return checkCapability(AgentCapabilities.artifacts);
+    }
     if (isActionTool(tool)) {
       return actionsEnabled;
     }
@@ -1686,6 +1689,8 @@ async function loadAgentTools({
       return checkCapability(AgentCapabilities.memory);
     } else if (tool === ASK_USER_QUESTION_TOOL_NAME) {
       return checkCapability(AgentCapabilities.ask_user_question);
+    } else if (tool === Tools.create_artifact) {
+      return checkCapability(AgentCapabilities.artifacts);
     } else if (isActionTool(tool)) {
       return actionsEnabled;
     } else if (tool?.includes(Constants.mcp_delimiter)) {

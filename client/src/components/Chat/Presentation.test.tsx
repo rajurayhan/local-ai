@@ -4,6 +4,10 @@ import { RecoilRoot, useSetRecoilState } from 'recoil';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { TConversation } from 'librechat-data-provider';
 import type { Artifact } from '~/common';
+import {
+  activeBrowserConversationId,
+  browserViewportByConversation,
+} from '~/components/Chat/Browser';
 import { activeSubagentPanel } from '~/components/Chat/Subagents/state';
 import { ChatSurfaceHarness } from 'test/harness';
 import Presentation from './Presentation';
@@ -13,6 +17,8 @@ const mockArtifactPanelLabel = 'Artifact panel loaded';
 const mockOpenArtifactLabel = 'Open Artifact';
 const mockChildPanelLabel = 'Child activity panel loaded';
 const mockOpenChildLabel = 'Open Child Activity';
+const mockBrowserPanelLabel = 'Browser panel loaded';
+const mockOpenBrowserLabel = 'Open Browser';
 const mockSelectAgentConversationLabel = 'Select Agent Conversation';
 const mockUseParentSubagentsQuery = jest.fn((_conversationId?: string, _config?: unknown) => ({
   data: undefined,
@@ -35,6 +41,11 @@ jest.mock('~/components/Artifacts/Artifacts', () => {
 jest.mock('~/components/Chat/Subagents/SubagentThreadPanel', () => ({
   __esModule: true,
   default: () => <aside>{mockChildPanelLabel}</aside>,
+}));
+
+jest.mock('~/components/Chat/Browser/BrowserPanel', () => ({
+  __esModule: true,
+  default: () => <aside>{mockBrowserPanelLabel}</aside>,
 }));
 
 jest.mock('~/components/Chat/Input/Files/DragDropWrapper', () => ({
@@ -123,6 +134,26 @@ const OpenSubagentPanel = () => {
   );
 };
 
+const OpenBrowserPanel = () => {
+  const setConversation = useSetRecoilState(store.conversationByIndex(0));
+  const setActive = useSetAtom(activeBrowserConversationId);
+  const setViewport = useSetAtom(browserViewportByConversation('parent-conversation'));
+  const open = () => {
+    setConversation({ conversationId: 'parent-conversation' } as TConversation);
+    setViewport({
+      conversationId: 'parent-conversation',
+      url: 'https://example.com',
+      imageUrl: '/images/page.png',
+    });
+    setActive('parent-conversation');
+  };
+  return (
+    <button type="button" onClick={open}>
+      {mockOpenBrowserLabel}
+    </button>
+  );
+};
+
 const SelectAgentConversation = () => {
   const setConversation = useSetRecoilState(store.conversationByIndex(0));
   return (
@@ -202,5 +233,25 @@ describe('Presentation Artifact loading', () => {
     fireEvent.click(screen.getByRole('button', { name: mockOpenArtifactLabel }));
     expect(await screen.findByText(mockArtifactPanelLabel)).toBeInTheDocument();
     expect(screen.queryByText(mockChildPanelLabel)).not.toBeInTheDocument();
+  });
+
+  it('loads the Browser panel and lets an opened artifact replace it', async () => {
+    render(
+      <ChatSurfaceHarness>
+        <RecoilRoot>
+          <Presentation>
+            <OpenBrowserPanel />
+            <OpenArtifactPanel />
+          </Presentation>
+        </RecoilRoot>
+      </ChatSurfaceHarness>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: mockOpenBrowserLabel }));
+    expect(await screen.findByText(mockBrowserPanelLabel)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: mockOpenArtifactLabel }));
+    expect(await screen.findByText(mockArtifactPanelLabel)).toBeInTheDocument();
+    expect(screen.queryByText(mockBrowserPanelLabel)).not.toBeInTheDocument();
   });
 });

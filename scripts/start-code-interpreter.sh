@@ -10,7 +10,6 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CODE_DIR="${CODE_INTERPRETER_DIR:-$ROOT_DIR/../code-interpreter}"
 CODE_URL="${CODE_URL:-http://127.0.0.1:3112/v1}"
-STATEFUL_URL="${STATEFUL_URL:-http://127.0.0.1:3114/v1}"
 
 require_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -75,8 +74,6 @@ def ensure(text, key, value, force=False):
 
 lc_text, c = ensure(lc_text, "LIBRECHAT_CODE_BASEURL", "http://host.docker.internal:3112/v1")
 changed_lc = changed_lc or c
-lc_text, c = ensure(lc_text, "LIBRECHAT_CODE_BASEURL_STATEFUL", "http://host.docker.internal:3114/v1")
-changed_lc = changed_lc or c
 lc_text, c = ensure(lc_text, "CODE_ENVIRONMENT_DECISION_VERSION", "1")
 changed_lc = changed_lc or c
 lc_text, c = ensure(lc_text, "CODEAPI_JWT_ENABLED", "true")
@@ -86,7 +83,9 @@ code_text, c = ensure(code_text, "KVM_ENABLED", "false", force=True)
 changed_code = changed_code or c
 code_text, c = ensure(code_text, "LOCAL_MODE", "false", force=True)
 changed_code = changed_code or c
-code_text, c = ensure(code_text, "COMPOSE_FILE", "docker-compose.yaml:docker-compose.mac.yml:docker-compose.rakaai.yml")
+code_text, c = ensure(code_text, "COMPOSE_FILE", "docker-compose.yaml:docker-compose.mac.yml")
+code_text, c2 = ensure(code_text, "CODEAPI_RUNTIME_SESSION_MODE", "stateless")
+changed_code = changed_code or c2
 changed_code = changed_code or c
 if not any(line.startswith("CODEAPI_BRIDGE_TOKEN=") and line.split("=", 1)[1].strip() for line in code_text.splitlines()):
     token = secrets.token_hex(32)
@@ -101,8 +100,9 @@ if changed_code:
     code.write_text(code_text)
 PY
 
-export COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.yaml:docker-compose.mac.yml:docker-compose.rakaai.yml}"
+export COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.yaml:docker-compose.mac.yml}"
 export KVM_ENABLED=false
+export CODEAPI_RUNTIME_SESSION_MODE=stateless
 
 echo "Starting Code Interpreter at $CODE_DIR (first sandbox build can take a long time)"
 docker compose --project-name rakaai-codeapi --project-directory "$CODE_DIR" up -d --build
@@ -121,5 +121,4 @@ wait_for() {
   return 1
 }
 
-wait_for "$CODE_URL" "Code Interpreter (default)"
-wait_for "$STATEFUL_URL" "Code Interpreter (stateful)" || true
+wait_for "$CODE_URL" "Code Interpreter"

@@ -107,6 +107,7 @@ jest.mock('lucide-react', () => ({
       {'chevron'}
     </span>
   ),
+  Globe: () => <span>{'globe'}</span>,
   Users: () => <span>{'users'}</span>,
   MessageCircleQuestion: () => <span data-testid="question-icon">{'question'}</span>,
   TriangleAlert: () => <span>{'warning'}</span>,

@@ -1,6 +1,7 @@
 import { WebSearchToolDefinition, CalculatorToolDefinition } from '@librechat/agents';
 import type { ExtendedJsonSchema } from './schema';
 import { AskUserQuestionToolDefinition } from '~/agents/hitl/askUserQuestionTool';
+import { CreateArtifactToolDefinition } from '~/tools/createArtifact';
 import { geminiToolkit } from '~/tools/toolkits/gemini';
 import { oaiToolkit } from '~/tools/toolkits/oai';
 
@@ -453,6 +454,13 @@ const agentToolDefinitions: Record<string, ToolRegistryDefinition> = {
     description: AskUserQuestionToolDefinition.description,
     schema: AskUserQuestionToolDefinition.schema as ExtendedJsonSchema,
     toolType: 'builtin',
+  },
+  [CreateArtifactToolDefinition.name]: {
+    name: CreateArtifactToolDefinition.name,
+    description: CreateArtifactToolDefinition.description,
+    schema: CreateArtifactToolDefinition.schema as ExtendedJsonSchema,
+    toolType: 'builtin',
+    responseFormat: 'content_and_artifact',
   },
 };
 

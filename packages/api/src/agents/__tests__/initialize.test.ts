@@ -1433,7 +1433,13 @@ describe('initializeAgent — stable and dynamic instruction fields', () => {
       db,
     );
 
-    expect(result.additional_instructions).toBe('Existing dynamic\n\nArtifact guidance');
+    expect(result.additional_instructions).toContain('Existing dynamic\n\nArtifact guidance');
+    expect(result.additional_instructions).toContain('call create_artifact');
+    expect(loadTools).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tools: expect.arrayContaining([Tools.create_artifact]),
+      }),
+    );
   });
 });
 

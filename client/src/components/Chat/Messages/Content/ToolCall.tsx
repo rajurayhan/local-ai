@@ -9,6 +9,7 @@ import {
   splitToolCallName,
 } from 'librechat-data-provider';
 import type { TAttachment, PartMetadata } from 'librechat-data-provider';
+import { BrowserRow, browserViewportFromTool, useBrowserViewportSync } from '~/components/Chat/Browser';
 import { useLocalize, useProgress, useExpandCollapse, useLazyCollapseBody } from '~/hooks';
 import { ToolIcon, getToolIconType, isError } from './ToolOutput';
 import { useMCPIconMap, useMCPServerNames } from '~/hooks/MCP';
@@ -78,6 +79,27 @@ export default function ToolCall({
   }, [auth]);
 
   const mcpServerNames = useMCPServerNames();
+  const browserFrame = useMemo(
+    () =>
+      browserViewportFromTool({
+        name,
+        output,
+        args: _args,
+        attachments,
+        knownServers: mcpServerNames,
+      }),
+    [_args, attachments, mcpServerNames, name, output],
+  );
+  useBrowserViewportSync({ frame: browserFrame, isSubmitting });
+  const chatAttachments = useMemo(() => {
+    if (browserFrame == null || attachments == null) {
+      return attachments;
+    }
+    return attachments.filter((attachment) => {
+      const filepath = (attachment as { filepath?: string }).filepath;
+      return filepath !== browserFrame.imageUrl;
+    });
+  }, [attachments, browserFrame]);
   const { function_name, domain, isMCPToolCall, mcpServerName } = useMemo(() => {
     if (typeof name !== 'string') {
       return { function_name: '', domain: null, isMCPToolCall: false, mcpServerName: '' };
@@ -324,7 +346,7 @@ export default function ToolCall({
                 'overflow-hidden rounded-lg border border-border-light bg-surface-secondary',
               )}
             >
-              <ToolCallInfo input={args ?? ''} output={output} attachments={attachments} />
+              <ToolCallInfo input={args ?? ''} output={output} attachments={chatAttachments} />
             </div>
           )}
         </div>
@@ -349,8 +371,9 @@ export default function ToolCall({
           <ToolAuthWarning />
         </div>
       )}
-      {!hideAttachments && attachments && attachments.length > 0 && (
-        <AttachmentGroup attachments={attachments} />
+      {browserFrame != null && <BrowserRow frame={browserFrame} />}
+      {!hideAttachments && chatAttachments && chatAttachments.length > 0 && (
+        <AttachmentGroup attachments={chatAttachments} />
       )}
     </>
   );

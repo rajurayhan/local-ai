@@ -22,6 +22,7 @@ const {
   DELETE_MEMORY_TOOL_NAME,
   createAskUserQuestionTool,
   ASK_USER_QUESTION_TOOL_NAME,
+  createArtifactTool,
   resolveWebSearchSSRFAgents,
   buildWebSearchDynamicContext,
   codeExecutionAuthHeaders,
@@ -479,6 +480,9 @@ const loadTools = async ({
       continue;
     } else if (tool === ASK_USER_QUESTION_TOOL_NAME) {
       requestedTools[tool] = async () => createAskUserQuestionTool();
+      continue;
+    } else if (tool === Tools.create_artifact) {
+      requestedTools[tool] = async () => createArtifactTool();
       continue;
     } else if (tool === SET_MEMORY_TOOL_NAME || tool === DELETE_MEMORY_TOOL_NAME) {
       requestedTools[tool] = () =>

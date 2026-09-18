@@ -5,6 +5,10 @@ import { EModelEndpoint, FileSources, LocalStorageKeys } from 'librechat-data-pr
 import type { ExtendedFile } from '~/common';
 import useResetArtifactsOnConversationChange from '~/hooks/Artifacts/useResetArtifactsOnConversationChange';
 import { ParentSubagentsProvider } from '~/components/Chat/Subagents/ParentSubagentsProvider';
+import {
+  activeBrowserConversationId,
+  BrowserHostProvider,
+} from '~/components/Chat/Browser';
 import DragDropWrapper from '~/components/Chat/Input/Files/DragDropWrapper';
 import { activeSubagentPanel } from '~/components/Chat/Subagents/state';
 import { EditorProvider, ArtifactsProvider } from '~/Providers';
@@ -16,6 +20,7 @@ import { failedFileIdsFrom } from '~/utils';
 import store from '~/store';
 
 const Artifacts = lazy(() => import('~/components/Artifacts/Artifacts'));
+const BrowserPanel = lazy(() => import('~/components/Chat/Browser/BrowserPanel'));
 const SubagentThreadPanel = lazy(() => import('~/components/Chat/Subagents/SubagentThreadPanel'));
 
 export default function Presentation({ children }: { children: React.ReactNode }) {
@@ -35,6 +40,9 @@ export default function Presentation({ children }: { children: React.ReactNode }
   const selectedSubagent = useAtomValue(activeSubagentPanel);
   const setSelectedSubagent = useSetAtom(activeSubagentPanel);
   const resetSelectedSubagent = useCallback(() => setSelectedSubagent(null), [setSelectedSubagent]);
+  const activeBrowserId = useAtomValue(activeBrowserConversationId);
+  const setActiveBrowserId = useSetAtom(activeBrowserConversationId);
+  const resetBrowserPanel = useCallback(() => setActiveBrowserId(null), [setActiveBrowserId]);
   const previousConversationIdRef = useRef<string | null>(null);
 
   useResetArtifactsOnConversationChange();
@@ -43,8 +51,11 @@ export default function Presentation({ children }: { children: React.ReactNode }
     const previous = previousConversationIdRef.current;
     const next = conversationId ?? null;
     previousConversationIdRef.current = next;
-    if (previous != null && previous !== next) resetSelectedSubagent();
-  }, [conversationId, resetSelectedSubagent]);
+    if (previous != null && previous !== next) {
+      resetSelectedSubagent();
+      resetBrowserPanel();
+    }
+  }, [conversationId, resetBrowserPanel, resetSelectedSubagent]);
 
   const setFilesToDelete = useSetFilesToDelete();
 
@@ -119,8 +130,27 @@ export default function Presentation({ children }: { children: React.ReactNode }
   }, [artifactsVisibility, artifacts, currentArtifactId]);
 
   useEffect(() => {
-    if (artifactsElement != null && selectedSubagent != null) resetSelectedSubagent();
-  }, [artifactsElement, resetSelectedSubagent, selectedSubagent]);
+    if (artifactsElement != null) {
+      if (selectedSubagent != null) resetSelectedSubagent();
+      if (activeBrowserId != null) resetBrowserPanel();
+    }
+  }, [activeBrowserId, artifactsElement, resetBrowserPanel, resetSelectedSubagent, selectedSubagent]);
+
+  const browserElement = useMemo(() => {
+    if (
+      conversationId == null ||
+      conversationId === '' ||
+      activeBrowserId == null ||
+      activeBrowserId !== conversationId
+    ) {
+      return null;
+    }
+    return (
+      <Suspense fallback={null}>
+        <BrowserPanel conversationId={conversationId} />
+      </Suspense>
+    );
+  }, [activeBrowserId, conversationId]);
 
   const subagentElement = useMemo(() => {
     if (
@@ -137,7 +167,7 @@ export default function Presentation({ children }: { children: React.ReactNode }
     );
   }, [conversationId, selectedSubagent]);
 
-  const panelElement = artifactsElement ?? subagentElement;
+  const panelElement = artifactsElement ?? browserElement ?? subagentElement;
 
   return (
     <DragDropWrapper className="relative flex w-full grow overflow-hidden bg-presentation">
@@ -146,11 +176,13 @@ export default function Presentation({ children }: { children: React.ReactNode }
           conversationId={conversationId ?? ''}
           enabled={conversationEndpoint === EModelEndpoint.agents && conversationAgentId != null}
         >
-          <SidePanelGroup panel={panelElement}>
-            <main className="flex h-full flex-col overflow-y-auto" role="main">
-              {children}
-            </main>
-          </SidePanelGroup>
+          <BrowserHostProvider conversationId={conversationId}>
+            <SidePanelGroup panel={panelElement}>
+              <main className="flex h-full flex-col overflow-y-auto" role="main">
+                {children}
+              </main>
+            </SidePanelGroup>
+          </BrowserHostProvider>
         </ParentSubagentsProvider>
       </AppChatSurface>
     </DragDropWrapper>
