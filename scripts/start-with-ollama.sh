@@ -14,6 +14,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
 OLLAMA_MODEL="${OLLAMA_MODEL:-llama3.1:8b}"
+EMBED_MODEL="${EMBED_MODEL:-nomic-embed-text}"
 OLLAMA_URL="${OLLAMA_URL:-http://127.0.0.1:11434}"
 APP_URL="${APP_URL:-http://localhost:3080}"
 
@@ -72,13 +73,14 @@ start_ollama() {
 }
 
 ensure_model() {
-  if ollama list 2>/dev/null | awk 'NR > 1 { print $1 }' | grep -qx "$OLLAMA_MODEL"; then
-    echo "Model $OLLAMA_MODEL is already present."
+  local model="$1"
+  if ollama list 2>/dev/null | awk 'NR > 1 { print $1 }' | grep -qx "$model"; then
+    echo "Model $model is already present."
     return
   fi
 
-  echo "Pulling $OLLAMA_MODEL (this can take several minutes)..."
-  ollama pull "$OLLAMA_MODEL"
+  echo "Pulling $model (this can take several minutes)..."
+  ollama pull "$model"
 }
 
 ensure_env() {
@@ -103,27 +105,61 @@ elif "APP_TITLE=LibreChat" in text:
 if "SD_WEBUI_URL=" not in text.splitlines() and "SD_WEBUI_URL=" not in text:
     text += "\nSD_WEBUI_URL=http://host.docker.internal:7860\n"
     changed = True
+if "SEARCH=false" in text:
+    text = text.replace("SEARCH=false", "SEARCH=true", 1)
+    changed = True
+if "MEILI_MASTER_KEY=\n" in text or text.rstrip().endswith("MEILI_MASTER_KEY="):
+    text = text.replace("MEILI_MASTER_KEY=", "MEILI_MASTER_KEY=rakaai-meili-2026-09-18-local", 1)
+    changed = True
+if "EMBEDDINGS_PROVIDER=ollama" not in text:
+    text += (
+        "\nEMBEDDINGS_PROVIDER=ollama\n"
+        "OLLAMA_BASE_URL=http://host.docker.internal:11434\n"
+        "EMBEDDINGS_MODEL=nomic-embed-text\n"
+    )
+    changed = True
 if changed:
     path.write_text(text)
-    print("Set APP_TITLE=RakaAI in .env")
+    print("Updated .env for RakaAI, search, and local RAG")
 PY
 }
 
 ensure_override() {
   local override="$ROOT_DIR/docker-compose.override.yaml"
-  if [[ -f "$override" ]]; then
-    return
-  fi
-
-  cat >"$override" <<'EOF'
+  if [[ ! -f "$override" ]]; then
+    cat >"$override" <<'EOF'
 services:
   api:
     volumes:
       - type: bind
         source: ./librechat.yaml
         target: /app/librechat.yaml
+  rag_api:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - EMBEDDINGS_PROVIDER=ollama
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - EMBEDDINGS_MODEL=nomic-embed-text
 EOF
-  echo "Wrote docker-compose.override.yaml so RakaAI loads librechat.yaml."
+    echo "Wrote docker-compose.override.yaml so RakaAI loads librechat.yaml."
+    return
+  fi
+
+  if grep -q 'EMBEDDINGS_PROVIDER=ollama' "$override"; then
+    return
+  fi
+
+  cat >>"$override" <<'EOF'
+  rag_api:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - EMBEDDINGS_PROVIDER=ollama
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - EMBEDDINGS_MODEL=nomic-embed-text
+EOF
+  echo "Added rag_api Ollama embeddings to docker-compose.override.yaml."
 }
 
 ensure_yaml() {
@@ -185,6 +221,16 @@ if "Welcome to LibreChat!" in text:
     )
     changed = True
 
+if "defaultPinnedTools:" not in text:
+    needle = "  # defaultPinnedTools:\n"
+    pinned = (
+        "  defaultPinnedTools:\n"
+        "    - 'file_search'\n"
+    )
+    if needle in text:
+        text = text.replace(needle, pinned, 1)
+        changed = True
+
 if changed:
     yaml_path.write_text(text)
     print(f"Updated librechat.yaml for Ollama ({model}) and RakaAI")
@@ -195,8 +241,8 @@ wait_for_app() {
   for _ in $(seq 1 60); do
     if curl -sf "$APP_URL/health" >/dev/null 2>&1; then
       echo "RakaAI is ready at $APP_URL"
-      echo "Choose endpoint Ollama and model $OLLAMA_MODEL in a new chat."
-      echo "Image generation: npm run start:image-gen  (then add the Stable Diffusion tool on an Agent)."
+      echo "Chat: endpoint RakaAI, or the RakaAI Agent for files + images."
+      echo "Image generation: npm run start:image-gen  (Flux proxy on :7860)."
       return
     fi
     sleep 2
@@ -209,11 +255,15 @@ start_ollama
 if pgrep -f 'ollama pull' >/dev/null 2>&1 && ! ollama list 2>/dev/null | awk 'NR > 1 { print $1 }' | grep -qx "$OLLAMA_MODEL"; then
   echo "An Ollama pull is already running; not starting another. Using whatever models are already local."
 else
-  ensure_model
+  ensure_model "$OLLAMA_MODEL"
 fi
+ensure_model "$EMBED_MODEL"
 ensure_env
 ensure_override
 ensure_yaml
 echo "Starting RakaAI..."
 compose up -d
 wait_for_app
+if docker exec chat-mongodb mongosh --eval 'db.runCommand({ ping: 1 })' >/dev/null 2>&1; then
+  docker exec -i chat-mongodb mongosh LibreChat --quiet < "$ROOT_DIR/scripts/seed-rakaai-agent.mongo.js"
+fi
