@@ -3,10 +3,10 @@ import path from 'node:path';
 
 import { resolveInsideRoot } from '../paths.ts';
 import { fail, objectSchema, ok } from '../result.ts';
-import type { DeviceConfig, Pack } from '../types.ts';
+import type { DeviceConfig, PackDraft } from '../types.ts';
 
-export function createFilesPack(config: DeviceConfig): Pack {
-  const tools: Pack['tools'] = [
+export function createFilesPack(config: DeviceConfig): PackDraft {
+  const tools: PackDraft['tools'] = [
     {
       name: 'list_directory',
       description: 'List files and folders under the allowed folder. Path is relative to that folder.',

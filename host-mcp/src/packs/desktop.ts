@@ -2,9 +2,39 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { fail, objectSchema, ok } from '../result.ts';
-import type { CommandRunner, DeviceConfig, Pack, ToolResult } from '../types.ts';
+import { assertAppName, parseKey, parseMenuPath, parseModifiers } from '../ui.ts';
+import type { CommandRunner, DeviceConfig, PackDraft, ToolResult } from '../types.ts';
 
-export function createDesktopPack(config: DeviceConfig, run: CommandRunner): Pack {
+const CLICK_MENU_JXA = [
+  'ObjC.import("stdlib");',
+  'const app = $.getenv("RAKAAI_APP");',
+  'const menus = $.getenv("RAKAAI_MENUS").split("\\u001f");',
+  'const se = Application("System Events");',
+  'const procs = se.processes.whose({ name: app });',
+  'if (procs.length === 0) { throw new Error("Application is not running"); }',
+  'const proc = procs[0];',
+  'proc.frontmost = true;',
+  'delay(0.35);',
+  'let node = proc.menuBars[0].menuBarItems.byName(menus[0]);',
+  'for (let i = 1; i < menus.length; i++) { node = node.menus[0].menuItems.byName(menus[i]); }',
+  'node.click();',
+].join('');
+
+const PRESS_KEYS_JXA = [
+  'ObjC.import("stdlib");',
+  'const se = Application("System Events");',
+  'const app = $.getenv("RAKAAI_APP");',
+  'if (app) { const procs = se.processes.whose({ name: app }); if (procs.length) { procs[0].frontmost = true; delay(0.3); } }',
+  'const using = [];',
+  'if ($.getenv("RAKAAI_MOD_COMMAND") === "1") using.push("command down");',
+  'if ($.getenv("RAKAAI_MOD_OPTION") === "1") using.push("option down");',
+  'if ($.getenv("RAKAAI_MOD_SHIFT") === "1") using.push("shift down");',
+  'if ($.getenv("RAKAAI_MOD_CONTROL") === "1") using.push("control down");',
+  'if ($.getenv("RAKAAI_KEY_KIND") === "code") { se.keyCode(Number($.getenv("RAKAAI_KEY")), { using }); }',
+  'else { se.keystroke($.getenv("RAKAAI_KEY"), { using }); }',
+].join('');
+
+export function createDesktopPack(config: DeviceConfig, run: CommandRunner): PackDraft {
   const env = {
     PATH: process.env.PATH ?? '/usr/bin:/bin:/usr/sbin:/sbin',
   };
@@ -106,6 +136,96 @@ export function createDesktopPack(config: DeviceConfig, run: CommandRunner): Pac
             return ok('Typed text into the frontmost application');
           } catch (error) {
             return fail(error instanceof Error ? error.message : 'Could not type text');
+          }
+        },
+      },
+      {
+        name: 'click_menu',
+        description: 'Click a menu path in a Mac app, for example File > New. Requires Accessibility permission.',
+        inputSchema: objectSchema(
+          {
+            application: { type: 'string', description: 'Application name, for example Calendar' },
+            menu: { type: 'string', description: 'Menu path with >, for example File > New' },
+          },
+          ['application', 'menu'],
+        ),
+        handler: async (args) => {
+          try {
+            const application = assertAppName(String(args.application ?? ''));
+            const menus = parseMenuPath(String(args.menu ?? ''));
+            const opened = await run('open', ['-a', application], runOpts);
+            if (opened.code !== 0) {
+              return fail(opened.stderr || `Could not open ${application}`);
+            }
+            const result = await run('osascript', ['-l', 'JavaScript', '-e', CLICK_MENU_JXA], {
+              ...runOpts,
+              env: {
+                ...env,
+                RAKAAI_APP: application,
+                RAKAAI_MENUS: menus.join('\u001f'),
+              },
+            });
+            if (result.code !== 0) {
+              return fail(
+                result.stderr ||
+                  `Could not click ${menus.join(' > ')}. Grant Accessibility access in System Settings.`,
+              );
+            }
+            return ok(`Clicked ${menus.join(' > ')} in ${application}`);
+          } catch (error) {
+            return fail(error instanceof Error ? error.message : 'Could not click the menu');
+          }
+        },
+      },
+      {
+        name: 'press_keys',
+        description:
+          'Press a key or shortcut in a Mac app, for example command+n. Requires Accessibility permission.',
+        inputSchema: objectSchema(
+          {
+            application: { type: 'string', description: 'Application name. Omit to use the frontmost app.' },
+            key: { type: 'string', description: 'One letter, one digit, or return, tab, escape, space, up, down' },
+            modifiers: { type: 'string', description: 'Optional modifiers such as command or command+shift' },
+          },
+          ['key'],
+        ),
+        handler: async (args) => {
+          try {
+            const key = parseKey(String(args.key ?? ''));
+            const modifiers = parseModifiers(String(args.modifiers ?? ''));
+            const application =
+              args.application != null && String(args.application).trim().length > 0
+                ? assertAppName(String(args.application))
+                : '';
+            if (application) {
+              const opened = await run('open', ['-a', application], runOpts);
+              if (opened.code !== 0) {
+                return fail(opened.stderr || `Could not open ${application}`);
+              }
+            }
+            const result = await run('osascript', ['-l', 'JavaScript', '-e', PRESS_KEYS_JXA], {
+              ...runOpts,
+              env: {
+                ...env,
+                RAKAAI_APP: application,
+                RAKAAI_KEY_KIND: key.kind,
+                RAKAAI_KEY: String(key.value),
+                RAKAAI_MOD_COMMAND: modifiers.includes('command') ? '1' : '0',
+                RAKAAI_MOD_OPTION: modifiers.includes('option') ? '1' : '0',
+                RAKAAI_MOD_SHIFT: modifiers.includes('shift') ? '1' : '0',
+                RAKAAI_MOD_CONTROL: modifiers.includes('control') ? '1' : '0',
+              },
+            });
+            if (result.code !== 0) {
+              return fail(
+                result.stderr ||
+                  'Could not press keys. Grant Accessibility access in System Settings.',
+              );
+            }
+            const combo = [...modifiers, String(args.key)].join('+');
+            return ok(application ? `Pressed ${combo} in ${application}` : `Pressed ${combo}`);
+          } catch (error) {
+            return fail(error instanceof Error ? error.message : 'Could not press keys');
           }
         },
       },

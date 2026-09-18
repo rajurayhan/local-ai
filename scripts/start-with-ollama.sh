@@ -268,7 +268,7 @@ wait_for_app() {
       echo "RakaAI is ready at $APP_URL"
       echo "Chat: endpoint RakaAI, or a RakaAI Agent for files, images, or device tools."
       echo "Image generation: npm run start:image-gen  (Flux proxy on :7860)."
-      echo "Device actions:   npm run start:device-mcp (host MCP on :8765)."
+      echo "Device actions:   npm run start:device-mcp (host MCP on :8765; Slack uses SLACK_BOT_TOKEN)."
       return
     fi
     sleep 2

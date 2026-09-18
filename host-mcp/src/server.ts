@@ -7,6 +7,7 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import { z } from 'zod';
 
 import { loadConfig } from './config.ts';
+import { PACK_AUTHOR } from './identity.ts';
 import { hashArgs, writeAudit } from './log.ts';
 import { createPacks, PACK_NAMES } from './packs.ts';
 import type { DeviceConfig, JsonSchema, Pack, PackName } from './types.ts';
@@ -74,7 +75,17 @@ async function handleMcp(
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: () => randomUUID(),
   });
-  const mcp = new McpServer({ name: `rakaai-${pack.name}`, version: '1.0.0' });
+  const mcp = new McpServer(
+    {
+      name: pack.shareName,
+      title: pack.shareName,
+      version: '1.0.0',
+      websiteUrl: 'https://github.com/rajurayhan/local-ai',
+    },
+    {
+      instructions: pack.description,
+    },
+  );
   registerPack(mcp, pack, config);
   await mcp.connect(transport);
   await transport.handleRequest(req, res);
@@ -99,7 +110,12 @@ export function createServer(config: DeviceConfig): http.Server {
 
       if (req.method === 'GET' && url.pathname === '/health') {
         res.writeHead(200, { 'Content-Type': 'application/json' }).end(
-          JSON.stringify({ ok: true, packs: PACK_NAMES }),
+          JSON.stringify({
+            ok: true,
+            author: PACK_AUTHOR,
+            packs: PACK_NAMES.map((name) => packs[name].shareName),
+            slack: config.apps.slackToken.length > 0,
+          }),
         );
         return;
       }

@@ -71,7 +71,7 @@ export const postJson: HttpPoster = async (url, options) => {
     const response = await fetch(url, {
       method: options.method,
       headers: options.headers,
-      body: options.body,
+      body: options.method === 'GET' ? undefined : options.body,
       signal: controller.signal,
     });
     const raw = Buffer.from(await response.arrayBuffer());

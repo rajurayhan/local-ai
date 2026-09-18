@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import { expandHome, isInsideRoot, resolveInsideRoot } from '../paths.ts';
 import { fail, objectSchema, ok } from '../result.ts';
-import type { CommandRunner, DeviceConfig, Pack } from '../types.ts';
+import type { CommandRunner, DeviceConfig, PackDraft } from '../types.ts';
 
 const META = /[;&|`$<>()\n]/;
 
@@ -101,7 +101,7 @@ function resolveAbsoluteCwd(allowedReal: string, expanded: string): string {
   return real;
 }
 
-export function createShellPack(config: DeviceConfig, run: CommandRunner): Pack {
+export function createShellPack(config: DeviceConfig, run: CommandRunner): PackDraft {
   return {
     name: 'shell',
     tools: [

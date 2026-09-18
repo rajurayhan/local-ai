@@ -4,7 +4,9 @@ mcpSettings:
     - '127.0.0.1:8765'
 
 mcpServers:
-  rakaai-files:
+  RakaAI-Files:
+    title: RakaAI-Files
+    description: 'RakaAI-Files: Read files under the allowed folder on this Mac. Authored by RakaAI <raju@sulus.ai>.'
     type: streamable-http
     url: http://host.docker.internal:8765/mcp/files
     timeout: 60000
@@ -12,7 +14,9 @@ mcpServers:
       source: admin
       authorization_type: bearer
       key: '${DEVICE_MCP_TOKEN}'
-  rakaai-shell:
+  RakaAI-Shell:
+    title: RakaAI-Shell
+    description: 'RakaAI-Shell: Run one allowlisted program in the allowed folder. Authored by RakaAI <raju@sulus.ai>.'
     type: streamable-http
     url: http://host.docker.internal:8765/mcp/shell
     timeout: 60000
@@ -20,7 +24,9 @@ mcpServers:
       source: admin
       authorization_type: bearer
       key: '${DEVICE_MCP_TOKEN}'
-  rakaai-browser:
+  RakaAI-Browser:
+    title: RakaAI-Browser
+    description: 'RakaAI-Browser: Open and read web pages in an isolated browser. Authored by RakaAI <raju@sulus.ai>.'
     type: streamable-http
     url: http://host.docker.internal:8765/mcp/browser
     timeout: 120000
@@ -28,7 +34,9 @@ mcpServers:
       source: admin
       authorization_type: bearer
       key: '${DEVICE_MCP_TOKEN}'
-  rakaai-desktop:
+  RakaAI-Desktop:
+    title: RakaAI-Desktop
+    description: 'RakaAI-Desktop: Open Mac apps, click menus, press shortcuts, type, and capture the screen. Authored by RakaAI <raju@sulus.ai>.'
     type: streamable-http
     url: http://host.docker.internal:8765/mcp/desktop
     timeout: 60000
@@ -36,7 +44,9 @@ mcpServers:
       source: admin
       authorization_type: bearer
       key: '${DEVICE_MCP_TOKEN}'
-  rakaai-apps:
+  RakaAI-Apps:
+    title: RakaAI-Apps
+    description: 'RakaAI-Apps: Send Slack messages and trigger configured app webhooks such as n8n. Authored by RakaAI <raju@sulus.ai>.'
     type: streamable-http
     url: http://host.docker.internal:8765/mcp/apps
     timeout: 60000

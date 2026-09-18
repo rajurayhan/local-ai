@@ -39,19 +39,23 @@ import secrets
 import sys
 
 path = Path(sys.argv[1])
-text = path.read_text()
+original = path.read_text()
+text = original
 if "DEVICE_MCP_TOKEN=" not in text:
-    path.write_text(text.rstrip() + f"\nDEVICE_MCP_TOKEN={secrets.token_urlsafe(32)}\n")
+    text = text.rstrip() + f"\nDEVICE_MCP_TOKEN={secrets.token_urlsafe(32)}\n"
     print("Added DEVICE_MCP_TOKEN to .env")
-    raise SystemExit(0)
+if "SLACK_BOT_TOKEN=" not in text:
+    text = text.rstrip() + "\nSLACK_BOT_TOKEN=\n"
+    print("Added empty SLACK_BOT_TOKEN to .env")
 
-lines = text.splitlines()
-for line in lines:
+for line in text.splitlines():
     if line.startswith("DEVICE_MCP_TOKEN=") and len(line.split("=", 1)[1].strip()) == 0:
         token = secrets.token_urlsafe(32)
-        path.write_text(text.replace("DEVICE_MCP_TOKEN=", f"DEVICE_MCP_TOKEN={token}", 1))
+        text = text.replace("DEVICE_MCP_TOKEN=", f"DEVICE_MCP_TOKEN={token}", 1)
         print("Filled empty DEVICE_MCP_TOKEN in .env")
         break
+if text != original:
+    path.write_text(text)
 PY
 
 TOKEN="$(python3 - "$ROOT_DIR/.env" <<'PY'
@@ -68,6 +72,16 @@ if [[ -z "$TOKEN" ]]; then
   echo "DEVICE_MCP_TOKEN is missing from .env"
   exit 1
 fi
+
+SLACK_TOKEN="$(python3 - "$ROOT_DIR/.env" <<'PY'
+from pathlib import Path
+import sys
+for line in Path(sys.argv[1]).read_text().splitlines():
+    if line.startswith("SLACK_BOT_TOKEN="):
+        print(line.split("=", 1)[1].strip().strip('"').strip("'"))
+        break
+PY
+)"
 
 if [[ ! -f "$HOST_MCP_DIR/config.json" ]]; then
   python3 - "$HOST_MCP_DIR/config.example.json" "$HOST_MCP_DIR/config.json" "$TOKEN" "$PORT" "$ROOT_FOLDER" <<'PY'
@@ -107,7 +121,7 @@ fi
 echo "Starting device MCP on port $PORT (files root $ROOT_FOLDER)..."
 (
   cd "$HOST_MCP_DIR"
-  nohup env DEVICE_MCP_TOKEN="$TOKEN" DEVICE_MCP_PORT="$PORT" \
+  nohup env DEVICE_MCP_TOKEN="$TOKEN" DEVICE_MCP_PORT="$PORT" SLACK_BOT_TOKEN="$SLACK_TOKEN" \
     "$HOST_MCP_DIR/node_modules/.bin/tsx" src/server.ts \
     </dev/null >"$LOG_FILE" 2>&1 &
   echo $! >"$PID_FILE"

@@ -29,9 +29,20 @@ export type PackTool = {
 
 export type PackName = 'files' | 'shell' | 'browser' | 'desktop' | 'apps';
 
-export type Pack = {
+export type PackAuthor = {
+  name: string;
+  email: string;
+};
+
+export type PackDraft = {
   name: PackName;
   tools: PackTool[];
+};
+
+export type Pack = PackDraft & {
+  shareName: string;
+  author: PackAuthor;
+  description: string;
 };
 
 export type AppHook = {
@@ -67,6 +78,7 @@ export type DeviceConfig = {
   };
   apps: {
     hooks: AppHook[];
+    slackToken: string;
     timeoutMs: number;
     maxResponseBytes: number;
   };
@@ -97,9 +109,9 @@ export type HttpResponse = {
 export type HttpPoster = (
   url: string,
   options: {
-    method: 'POST' | 'PUT';
+    method: 'GET' | 'POST' | 'PUT';
     headers: Record<string, string>;
-    body: string;
+    body?: string;
     timeoutMs: number;
     maxResponseBytes: number;
   },

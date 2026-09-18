@@ -1,6 +1,6 @@
 import { assertHttpUrl } from '../hosts.ts';
 import { fail, objectSchema, ok } from '../result.ts';
-import type { DeviceConfig, Pack, ToolResult } from '../types.ts';
+import type { DeviceConfig, PackDraft, ToolResult } from '../types.ts';
 
 export type BrowserSession = {
   open: (url: string) => Promise<string>;
@@ -11,7 +11,7 @@ export type BrowserSession = {
 
 export type BrowserFactory = () => Promise<BrowserSession>;
 
-export function createBrowserPack(config: DeviceConfig, createSession: BrowserFactory): Pack {
+export function createBrowserPack(config: DeviceConfig, createSession: BrowserFactory): PackDraft {
   let session: BrowserSession | null = null;
 
   const ensureSession = async (): Promise<BrowserSession> => {

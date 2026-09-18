@@ -120,7 +120,7 @@ upsertAgent(
   'agent_rakaai_local',
   baseVersion({
     name: 'RakaAI',
-    description: 'Local assistant for uploaded files, the Documents/RakaAI folder, and images when asked.',
+    description: 'RakaAI. Local assistant for uploaded files, the Documents/RakaAI folder, and images when asked. Authored by RakaAI.',
     instructions: [
       'You are RakaAI. Answer the user in plain sentences.',
       '',
@@ -135,7 +135,7 @@ upsertAgent(
       '- You cannot search the web. Do not claim that you did.',
     ].join('\n'),
     tools: ['file_search', 'stable-diffusion'],
-    mcpServerNames: ['rakaai-files'],
+    mcpServerNames: ['RakaAI-Files'],
     conversation_starters: [
       'Search my uploaded files for the latest decision.',
       'List the files in my RakaAI folder.',
@@ -148,16 +148,20 @@ upsertAgent(
 upsertAgent(
   'agent_rakaai_apps',
   baseVersion({
-    name: 'RakaAI Apps',
-    description: 'Triggers configured local app webhooks such as n8n.',
+    name: 'RakaAI-Apps',
+    description: 'RakaAI-Apps. Sends Slack messages and triggers configured webhooks such as n8n. Authored by RakaAI.',
     instructions: [
       'You are RakaAI Apps. Answer in plain sentences.',
+      'To Slack someone, use slack_send_message with a #channel, an email, or a Slack user id. Wait for approval.',
       'Call list_hooks before trigger_hook if you do not already know the hook id.',
       'Call one tool, then wait. After a tool result, tell the user what happened.',
       'Do not invent hook ids. Do not output JSON unless the user asked for it.',
     ].join('\n'),
-    mcpServerNames: ['rakaai-apps'],
-    conversation_starters: ['What app hooks are available?', 'Trigger the n8n hook with a test payload.'],
+    mcpServerNames: ['RakaAI-Apps'],
+    conversation_starters: [
+      'What app hooks are available?',
+      'Send a Slack message to #general saying the deploy finished.',
+    ],
   }),
   'apps MCP',
 );
@@ -165,14 +169,14 @@ upsertAgent(
 upsertAgent(
   'agent_rakaai_browser',
   baseVersion({
-    name: 'RakaAI Browser',
-    description: 'Opens web pages on this Mac through the isolated device browser.',
+    name: 'RakaAI-Browser',
+    description: 'RakaAI-Browser. Opens web pages on this Mac through the isolated device browser. Authored by RakaAI.',
     instructions: [
       'You are RakaAI Browser. Answer in plain sentences.',
       'Open a page before you read it, click it, or capture it. One tool per turn.',
       'After a tool result, summarize what you see. Do not output JSON.',
     ].join('\n'),
-    mcpServerNames: ['rakaai-browser'],
+    mcpServerNames: ['RakaAI-Browser'],
     conversation_starters: ['Open example.com and tell me what it says.'],
   }),
   'browser MCP',
@@ -181,14 +185,14 @@ upsertAgent(
 upsertAgent(
   'agent_rakaai_shell',
   baseVersion({
-    name: 'RakaAI Shell',
-    description: 'Runs allowlisted commands in the Documents/RakaAI folder. Approval is required.',
+    name: 'RakaAI-Shell',
+    description: 'RakaAI-Shell. Runs allowlisted commands in the Documents/RakaAI folder. Approval is required. Authored by RakaAI.',
     instructions: [
       'You are RakaAI Shell. Answer in plain sentences.',
       'Run one simple program at a time. No pipes, no sudo, no destructive flags.',
       'Wait for approval. After the result, explain the output. Do not output JSON.',
     ].join('\n'),
-    mcpServerNames: ['rakaai-shell'],
+    mcpServerNames: ['RakaAI-Shell'],
     conversation_starters: ['List the files in the allowed folder.'],
   }),
   'shell MCP',
@@ -197,15 +201,16 @@ upsertAgent(
 upsertAgent(
   'agent_rakaai_desktop',
   baseVersion({
-    name: 'RakaAI Desktop',
-    description: 'Opens Mac apps, types, and captures the screen. Approval is required every time.',
+    name: 'RakaAI-Desktop',
+    description: 'RakaAI-Desktop. Opens Mac apps, clicks menus, presses shortcuts, types, and captures the screen. Approval is required every time. Authored by RakaAI.',
     instructions: [
       'You are RakaAI Desktop. Answer in plain sentences.',
+      'Open the app first if it is not already open. Then do one action: a menu path such as File > New, a shortcut such as command+n, or typing.',
       'Do one action per turn and wait for approval. Then say what happened.',
-      'Do not claim you clicked or typed unless a tool result says so.',
+      'Do not claim you clicked, typed, or pressed keys unless a tool result says so.',
     ].join('\n'),
-    mcpServerNames: ['rakaai-desktop'],
-    conversation_starters: ['What apps are open?', 'Open Calendar.'],
+    mcpServerNames: ['RakaAI-Desktop'],
+    conversation_starters: ['What apps are open?', 'Open Calendar.', 'In Calendar, use File > New Event.'],
   }),
   'desktop MCP',
 );

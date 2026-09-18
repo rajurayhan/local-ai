@@ -4,6 +4,17 @@ import path from 'node:path';
 import { expandHome, osHome } from './paths.ts';
 import type { DeviceConfig } from './types.ts';
 
+export type ConfigOverrides = Omit<
+  Partial<DeviceConfig>,
+  'files' | 'shell' | 'browser' | 'desktop' | 'apps'
+> & {
+  files?: Partial<DeviceConfig['files']>;
+  shell?: Partial<DeviceConfig['shell']>;
+  browser?: Partial<DeviceConfig['browser']>;
+  desktop?: Partial<DeviceConfig['desktop']>;
+  apps?: Partial<DeviceConfig['apps']>;
+};
+
 const DEFAULT_DENY = [
   'sudo',
   'su',
@@ -25,7 +36,7 @@ export function defaultRoot(): string {
   return path.join(osHome(), 'Documents', 'RakaAI');
 }
 
-export function defaultConfig(overrides: Partial<DeviceConfig> = {}): DeviceConfig {
+export function defaultConfig(overrides: ConfigOverrides = {}): DeviceConfig {
   const root = expandHome(overrides.files?.root ?? defaultRoot());
   return {
     host: overrides.host ?? '0.0.0.0',
@@ -56,6 +67,7 @@ export function defaultConfig(overrides: Partial<DeviceConfig> = {}): DeviceConf
     },
     apps: {
       hooks: overrides.apps?.hooks ?? [],
+      slackToken: process.env.SLACK_BOT_TOKEN || overrides.apps?.slackToken || '',
       timeoutMs: overrides.apps?.timeoutMs ?? 15_000,
       maxResponseBytes: overrides.apps?.maxResponseBytes ?? 32 * 1024,
     },
@@ -71,13 +83,7 @@ export function loadConfig(configPath?: string): DeviceConfig {
     });
   }
 
-  const raw = JSON.parse(fs.readFileSync(file, 'utf8')) as Partial<DeviceConfig> & {
-    files?: Partial<DeviceConfig['files']>;
-    shell?: Partial<DeviceConfig['shell']>;
-    browser?: Partial<DeviceConfig['browser']>;
-    desktop?: Partial<DeviceConfig['desktop']>;
-    apps?: Partial<DeviceConfig['apps']>;
-  };
+  const raw = JSON.parse(fs.readFileSync(file, 'utf8')) as ConfigOverrides;
 
   return defaultConfig({
     ...raw,

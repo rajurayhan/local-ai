@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "description": "Host-side MCP gateway so LibreChat agents can act on this Mac",
+  "author": "RakaAI <raju@sulus.ai>",
   "type": "module",
   "scripts": {
     "start": "tsx src/server.ts",
