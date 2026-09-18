@@ -173,27 +173,40 @@ export async function sendSlackMessage(slack: SlackApi, to: string, text: string
   return slack.postMessage(channel, message);
 }
 
+export const SLACK_MAX_RESPONSE_BYTES = 1024 * 1024;
+
 export function createSlackApi(
   token: string,
   post: HttpPoster,
   timeoutMs: number,
-  maxResponseBytes: number,
+  maxResponseBytes: number = SLACK_MAX_RESPONSE_BYTES,
 ): SlackApi {
+  const budget = Math.max(maxResponseBytes, SLACK_MAX_RESPONSE_BYTES);
   const call = async (method: string, httpMethod: 'GET' | 'POST', payload?: Record<string, string>) => {
     const url =
       httpMethod === 'GET' && payload
         ? `https://slack.com/api/${method}?${new URLSearchParams(payload).toString()}`
         : `https://slack.com/api/${method}`;
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/json',
+    };
+    if (httpMethod === 'POST') {
+      headers['Content-Type'] = 'application/json; charset=utf-8';
+    }
     const response = await post(url, {
       method: httpMethod,
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json; charset=utf-8',
-      },
+      headers,
       body: httpMethod === 'POST' ? JSON.stringify(payload ?? {}) : undefined,
       timeoutMs,
-      maxResponseBytes,
+      maxResponseBytes: budget,
     });
+    if (response.status >= 400) {
+      throw new Error(`Slack ${method} HTTP ${response.status}`);
+    }
+    if (response.truncated === true) {
+      throw new Error(`Slack ${method} response was truncated`);
+    }
     let parsed: SlackResult;
     try {
       parsed = JSON.parse(response.body) as SlackResult;
@@ -207,7 +220,7 @@ export function createSlackApi(
   };
 
   const listUsers: SlackApi['listUsers'] = async (options = {}) => {
-    const limit = Math.min(Math.max(options.limit ?? 40, 1), 100);
+    const limit = Math.min(Math.max(options.limit ?? 20, 1), 50);
     const payload: Record<string, string> = { limit: String(limit) };
     if (options.cursor) {
       payload.cursor = options.cursor;
@@ -277,7 +290,7 @@ export function createSlackApi(
       const matches: SlackPerson[] = [];
       let cursor: string | undefined;
       for (let page = 0; page < 5 && matches.length < 20; page += 1) {
-        const listed = await listUsers({ cursor, limit: 100 });
+        const listed = await listUsers({ cursor, limit: 50 });
         for (const person of listed.users) {
           if (personHaystack(person).includes(needle)) {
             matches.push(person);

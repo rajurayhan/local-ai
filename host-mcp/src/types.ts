@@ -105,6 +105,7 @@ export type CommandRunner = (
 export type HttpResponse = {
   status: number;
   body: string;
+  truncated?: boolean;
 };
 
 export type HttpPoster = (

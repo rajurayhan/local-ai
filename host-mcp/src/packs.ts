@@ -17,10 +17,10 @@ function withIdentity(pack: PackDraft): Pack {
 
 function slackClients(config: DeviceConfig, post: typeof postJson) {
   const asUser = config.apps.slackUserToken
-    ? createSlackApi(config.apps.slackUserToken, post, config.apps.timeoutMs, config.apps.maxResponseBytes)
+    ? createSlackApi(config.apps.slackUserToken, post, config.apps.timeoutMs)
     : undefined;
   const directory = config.apps.slackToken
-    ? createSlackApi(config.apps.slackToken, post, config.apps.timeoutMs, config.apps.maxResponseBytes)
+    ? createSlackApi(config.apps.slackToken, post, config.apps.timeoutMs)
     : asUser;
   return { asUser, directory };
 }

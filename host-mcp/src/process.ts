@@ -75,8 +75,9 @@ export const postJson: HttpPoster = async (url, options) => {
       signal: controller.signal,
     });
     const raw = Buffer.from(await response.arrayBuffer());
+    const truncated = raw.length > options.maxResponseBytes;
     const body = raw.subarray(0, options.maxResponseBytes).toString('utf8');
-    return { status: response.status, body };
+    return { status: response.status, body, truncated };
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
       throw new Error('Hook request timed out');

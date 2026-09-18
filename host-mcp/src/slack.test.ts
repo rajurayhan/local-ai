@@ -80,6 +80,16 @@ test('looks up email then opens a DM', async () => {
   assert.equal(result, 'D-U9:ping');
 });
 
+test('createSlackApi reports a truncated users.list body', async () => {
+  const post: HttpPoster = async () => ({
+    status: 200,
+    body: '{"ok":true,"members":[',
+    truncated: true,
+  });
+  const slack = createSlackApi('xoxp-test', post, 1000, 100);
+  await assert.rejects(() => slack.listUsers(), /truncated/);
+});
+
 test('createSlackApi lists and searches people through HTTP', async () => {
   const post: HttpPoster = async (url) => {
     if (url.includes('users.list')) {
