@@ -5,8 +5,7 @@ export type TextResult = {
 
 export type ImageResult = {
   content: Array<
-    | { type: 'text'; text: string }
-    | { type: 'image'; data: string; mimeType: string }
+    { type: 'text'; text: string } | { type: 'image'; data: string; mimeType: string }
   >;
   isError?: boolean;
 };
@@ -27,7 +26,7 @@ export type PackTool = {
   handler: (args: Record<string, unknown>) => Promise<ToolResult>;
 };
 
-export type PackName = 'files' | 'shell' | 'browser' | 'desktop' | 'apps';
+export type PackName = 'files' | 'shell' | 'browser' | 'desktop' | 'apps' | 'calendar';
 
 export type PackAuthor = {
   name: string;

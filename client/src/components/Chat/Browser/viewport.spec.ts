@@ -22,14 +22,18 @@ describe('browser viewport helpers', () => {
   it('recognizes RakaAI-Browser view tools only', () => {
     expect(isBrowserViewTool(browserTool)).toBe(true);
     expect(isBrowserViewTool(`click${d}RakaAI-Browser`)).toBe(true);
+    expect(isBrowserViewTool(`fill${d}RakaAI-Browser`)).toBe(true);
     expect(isBrowserViewTool(`capture_page${d}RakaAI-Browser`)).toBe(true);
     expect(isBrowserViewTool(`page_text${d}RakaAI-Browser`)).toBe(false);
+    expect(isBrowserViewTool(`list_links${d}RakaAI-Browser`)).toBe(false);
     expect(isBrowserViewTool(`open_page${d}other`)).toBe(false);
     expect(isBrowserViewTool('open_page')).toBe(false);
   });
 
   it('reads the page URL from the first line or the first http(s) match', () => {
-    expect(extractPageUrl('https://example.com/docs\n\nVisible text')).toBe('https://example.com/docs');
+    expect(extractPageUrl('https://example.com/docs\n\nVisible text')).toBe(
+      'https://example.com/docs',
+    );
     expect(extractPageUrl('Opened https://example.com/x for you.')).toBe('https://example.com/x');
     expect(extractPageUrl('no url here')).toBeUndefined();
   });

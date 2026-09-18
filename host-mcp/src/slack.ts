@@ -32,6 +32,13 @@ export type SlackChannelPage = {
   nextCursor?: string;
 };
 
+export type SlackMessage = {
+  ts: string;
+  user: string;
+  text: string;
+  threadTs?: string;
+};
+
 export type SlackApi = {
   lookupByEmail: (email: string) => Promise<SlackPerson>;
   listUsers: (options?: { cursor?: string; limit?: number }) => Promise<SlackUserPage>;
@@ -39,7 +46,8 @@ export type SlackApi = {
   listChannels: (options?: { cursor?: string; limit?: number }) => Promise<SlackChannelPage>;
   searchChannels: (query: string) => Promise<SlackChannel[]>;
   openIm: (userId: string) => Promise<string>;
-  postMessage: (channel: string, text: string) => Promise<string>;
+  history: (channel: string, options?: { limit?: number }) => Promise<SlackMessage[]>;
+  postMessage: (channel: string, text: string, threadTs?: string) => Promise<string>;
 };
 
 type SlackMember = {
@@ -75,6 +83,13 @@ type SlackResult = {
   ts?: string;
   members?: SlackMember[];
   channels?: SlackConversation[];
+  messages?: Array<{
+    ts?: string;
+    user?: string;
+    bot_id?: string;
+    text?: string;
+    thread_ts?: string;
+  }>;
   response_metadata?: { next_cursor?: string };
 };
 
@@ -82,6 +97,7 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const BROADCAST_NAMES = new Set(['here', 'channel', 'everyone']);
 const BROADCAST_MARKUP = /<!here(?:\|[^>]*)?>|<!channel(?:\|[^>]*)?>|<!everyone(?:\|[^>]*)?>/i;
 const USER_ID = /^[UW][A-Z0-9]+$/i;
+const CHANNEL_ID = /^[CGD][A-Z0-9]{8,}$/;
 const MENTION_TOKEN = /(?<![A-Za-z0-9._<])@([A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*)/g;
 
 export function classifySlackTo(raw: string): SlackTarget {
@@ -108,7 +124,8 @@ function toPerson(member: SlackMember): SlackPerson | undefined {
   if (!member.id || member.deleted === true || member.is_bot === true) {
     return undefined;
   }
-  const displayName = member.profile?.display_name?.trim() || member.profile?.display_name_normalized?.trim();
+  const displayName =
+    member.profile?.display_name?.trim() || member.profile?.display_name_normalized?.trim();
   const realName =
     member.profile?.real_name ||
     member.profile?.real_name_normalized ||
@@ -160,7 +177,9 @@ function formatPeople(users: SlackPerson[]): string {
   }
   return users
     .map((person) =>
-      [person.id, person.realName, `@${person.name}`, person.email ?? ''].filter((part) => part.length > 0).join(' · '),
+      [person.id, person.realName, `@${person.name}`, person.email ?? '']
+        .filter((part) => part.length > 0)
+        .join(' · '),
     )
     .join('\n');
 }
@@ -182,6 +201,63 @@ export function formatSlackUsers(users: SlackPerson[], nextCursor?: string): str
 export function formatSlackChannels(channels: SlackChannel[], nextCursor?: string): string {
   const body = formatChannels(channels);
   return nextCursor ? `${body}\nnext_cursor ${nextCursor}` : body;
+}
+
+export function formatSlackMessages(messages: SlackMessage[]): string {
+  if (messages.length === 0) {
+    return 'No messages.';
+  }
+  return messages
+    .map((message) => {
+      const thread =
+        message.threadTs && message.threadTs !== message.ts ? ` thread ${message.threadTs}` : '';
+      const text = message.text.trim().length > 0 ? message.text : '(no text)';
+      return `${message.user} ${message.ts}${thread}\n${text}`;
+    })
+    .join('\n\n');
+}
+
+export async function resolveSlackChannel(slack: SlackApi, to: string): Promise<string> {
+  let target: SlackTarget;
+  try {
+    target = classifySlackTo(to);
+  } catch {
+    const people = await slack.searchUsers(to);
+    if (people.length === 1 && people[0]) {
+      return slack.openIm(people[0].id);
+    }
+    const channels = await slack.searchChannels(to);
+    if (channels.length === 1 && channels[0]) {
+      return channels[0].id;
+    }
+    if (people.length > 1) {
+      throw new Error(`Several people match. Be more specific:\n${formatPeople(people)}`);
+    }
+    if (channels.length > 1) {
+      throw new Error(`Several channels match. Be more specific:\n${formatChannels(channels)}`);
+    }
+    throw new Error(
+      'No Slack user or channel matched. Try slack_search_users or slack_list_channels.',
+    );
+  }
+
+  if (target.kind === 'channel') {
+    if (CHANNEL_ID.test(target.value)) {
+      return target.value;
+    }
+    const matches = await slack.searchChannels(target.value);
+    if (matches.length === 1 && matches[0]) {
+      return matches[0].id;
+    }
+    if (matches.length > 1) {
+      throw new Error(`Several channels match. Be more specific:\n${formatChannels(matches)}`);
+    }
+    throw new Error(`No Slack channel matched #${target.value}. Try slack_list_channels.`);
+  }
+
+  const userId =
+    target.kind === 'email' ? (await slack.lookupByEmail(target.value)).id : target.value;
+  return slack.openIm(userId);
 }
 
 function mentionTokenPattern(): RegExp {
@@ -235,10 +311,18 @@ export async function resolveSlackMentions(slack: SlackApi, text: string): Promi
     replacements.set(token.toLowerCase(), await resolveMentionToken(slack, token));
   }
 
-  return text.replace(mentionTokenPattern(), (full, token: string) => replacements.get(token.toLowerCase()) ?? full);
+  return text.replace(
+    mentionTokenPattern(),
+    (full, token: string) => replacements.get(token.toLowerCase()) ?? full,
+  );
 }
 
-export async function sendSlackMessage(slack: SlackApi, to: string, text: string): Promise<string> {
+export async function sendSlackMessage(
+  slack: SlackApi,
+  to: string,
+  text: string,
+  threadTs?: string,
+): Promise<string> {
   const message = text.trim();
   if (message.length === 0) {
     throw new Error('text is required');
@@ -266,13 +350,19 @@ export async function sendSlackMessage(slack: SlackApi, to: string, text: string
     }
   }
 
+  const thread = threadTs?.trim();
   if (target.kind === 'channel') {
-    return slack.postMessage(target.value, resolved);
+    return slack.postMessage(
+      target.value,
+      resolved,
+      thread && thread.length > 0 ? thread : undefined,
+    );
   }
 
-  const userId = target.kind === 'email' ? (await slack.lookupByEmail(target.value)).id : target.value;
+  const userId =
+    target.kind === 'email' ? (await slack.lookupByEmail(target.value)).id : target.value;
   const channel = await slack.openIm(userId);
-  return slack.postMessage(channel, resolved);
+  return slack.postMessage(channel, resolved, thread && thread.length > 0 ? thread : undefined);
 }
 
 export const SLACK_MAX_RESPONSE_BYTES = 1024 * 1024;
@@ -284,7 +374,11 @@ export function createSlackApi(
   maxResponseBytes: number = SLACK_MAX_RESPONSE_BYTES,
 ): SlackApi {
   const budget = Math.max(maxResponseBytes, SLACK_MAX_RESPONSE_BYTES);
-  const call = async (method: string, httpMethod: 'GET' | 'POST', payload?: Record<string, string>) => {
+  const call = async (
+    method: string,
+    httpMethod: 'GET' | 'POST',
+    payload?: Record<string, string>,
+  ) => {
     const url =
       httpMethod === 'GET' && payload
         ? `https://slack.com/api/${method}?${new URLSearchParams(payload).toString()}`
@@ -338,7 +432,9 @@ export function createSlackApi(
 
   const lookupByEmail: SlackApi['lookupByEmail'] = async (email) => {
     const result = await call('users.lookupByEmail', 'GET', { email });
-    const person = result.user ? toPerson({ ...result.user, deleted: false, is_bot: false }) : undefined;
+    const person = result.user
+      ? toPerson({ ...result.user, deleted: false, is_bot: false })
+      : undefined;
     if (!person) {
       throw new Error('Slack user id missing');
     }
@@ -441,8 +537,32 @@ export function createSlackApi(
       }
       return channel;
     },
-    postMessage: async (channel, text) => {
-      const result = await call('chat.postMessage', 'POST', { channel, text });
+    history: async (channel, options = {}) => {
+      const limit = Math.min(Math.max(options.limit ?? 20, 1), 50);
+      const result = await call('conversations.history', 'GET', {
+        channel,
+        limit: String(limit),
+      });
+      return (result.messages ?? []).flatMap((item) => {
+        if (!item.ts) {
+          return [];
+        }
+        return [
+          {
+            ts: item.ts,
+            user: item.user || item.bot_id || 'unknown',
+            text: item.text ?? '',
+            threadTs: item.thread_ts,
+          },
+        ];
+      });
+    },
+    postMessage: async (channel, text, threadTs) => {
+      const payload: Record<string, string> = { channel, text };
+      if (threadTs && threadTs.length > 0) {
+        payload.thread_ts = threadTs;
+      }
+      const result = await call('chat.postMessage', 'POST', payload);
       return result.ts ? `Sent as you to ${channel} (${result.ts})` : `Sent as you to ${channel}`;
     },
   };

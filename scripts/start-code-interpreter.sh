@@ -104,6 +104,8 @@ export COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.yaml:docker-compose.mac.yml}
 export KVM_ENABLED=false
 export CODEAPI_RUNTIME_SESSION_MODE=stateless
 
+"$ROOT_DIR/scripts/ensure-code-packages.sh" "$CODE_DIR"
+
 echo "Starting Code Interpreter at $CODE_DIR (first sandbox build can take a long time)"
 docker compose --project-name rakaai-codeapi --project-directory "$CODE_DIR" up -d --build
 

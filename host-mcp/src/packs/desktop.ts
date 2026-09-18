@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { assertHttpUrl } from '../hosts.ts';
+import { resolveUserPath } from '../paths.ts';
 import { fail, objectSchema, ok } from '../result.ts';
 import { assertAppName, parseKey, parseMenuPath, parseModifiers } from '../ui.ts';
 import type { CommandRunner, DeviceConfig, PackDraft, ToolResult } from '../types.ts';
@@ -141,7 +143,8 @@ export function createDesktopPack(config: DeviceConfig, run: CommandRunner): Pac
       },
       {
         name: 'click_menu',
-        description: 'Click a menu path in a Mac app, for example File > New. Requires Accessibility permission.',
+        description:
+          'Click a menu path in a Mac app, for example File > New. Requires Accessibility permission.',
         inputSchema: objectSchema(
           {
             application: { type: 'string', description: 'Application name, for example Calendar' },
@@ -183,9 +186,18 @@ export function createDesktopPack(config: DeviceConfig, run: CommandRunner): Pac
           'Press a key or shortcut in a Mac app, for example command+n. Requires Accessibility permission.',
         inputSchema: objectSchema(
           {
-            application: { type: 'string', description: 'Application name. Omit to use the frontmost app.' },
-            key: { type: 'string', description: 'One letter, one digit, or return, tab, escape, space, up, down' },
-            modifiers: { type: 'string', description: 'Optional modifiers such as command or command+shift' },
+            application: {
+              type: 'string',
+              description: 'Application name. Omit to use the frontmost app.',
+            },
+            key: {
+              type: 'string',
+              description: 'One letter, one digit, or return, tab, escape, space, up, down',
+            },
+            modifiers: {
+              type: 'string',
+              description: 'Optional modifiers such as command or command+shift',
+            },
           },
           ['key'],
         ),
@@ -230,8 +242,101 @@ export function createDesktopPack(config: DeviceConfig, run: CommandRunner): Pac
         },
       },
       {
+        name: 'clipboard_read',
+        description: 'Read the current macOS clipboard text.',
+        inputSchema: objectSchema({}),
+        handler: async () => {
+          try {
+            const result = await run('pbpaste', [], runOpts);
+            if (result.code !== 0) {
+              return fail(result.stderr || 'Could not read the clipboard');
+            }
+            const text = result.stdout;
+            return ok(text.length > 0 ? text : '(empty)');
+          } catch (error) {
+            return fail(error instanceof Error ? error.message : 'Could not read the clipboard');
+          }
+        },
+      },
+      {
+        name: 'clipboard_write',
+        description: 'Replace the macOS clipboard with the given text.',
+        inputSchema: objectSchema(
+          {
+            text: { type: 'string', description: 'Text to put on the clipboard' },
+          },
+          ['text'],
+        ),
+        handler: async (args) => {
+          const text = String(args.text ?? '');
+          if (text.length === 0) {
+            return fail('text is required');
+          }
+          if (text.length > 20_000) {
+            return fail('text is too long');
+          }
+          try {
+            const result = await run(
+              'osascript',
+              [
+                '-l',
+                'JavaScript',
+                '-e',
+                'ObjC.import("stdlib"); Application.currentApplication().includeStandardAdditions = true; Application.currentApplication().setTheClipboardTo($.getenv("RAKAAI_CLIP"))',
+              ],
+              {
+                ...runOpts,
+                env: { ...env, RAKAAI_CLIP: text },
+              },
+            );
+            if (result.code !== 0) {
+              return fail(result.stderr || 'Could not write the clipboard');
+            }
+            return ok('Copied text to the clipboard');
+          } catch (error) {
+            return fail(error instanceof Error ? error.message : 'Could not write the clipboard');
+          }
+        },
+      },
+      {
+        name: 'open_item',
+        description:
+          'Open a URL in the default browser, or a file or folder in Finder. Target is an http(s) URL or a path.',
+        inputSchema: objectSchema(
+          {
+            target: {
+              type: 'string',
+              description: 'http(s) URL, absolute path, ~/..., or a path under the default folder',
+            },
+          },
+          ['target'],
+        ),
+        handler: async (args) => {
+          const target = String(args.target ?? '').trim();
+          if (target.length === 0) {
+            return fail('target is required');
+          }
+          try {
+            const value = target.includes('://')
+              ? assertHttpUrl(target, []).toString()
+              : resolveUserPath(target, config.files.root);
+            if (!target.includes('://') && !fs.existsSync(value)) {
+              return fail('Path does not exist');
+            }
+            const result = await run('open', [value], runOpts);
+            if (result.code !== 0) {
+              return fail(result.stderr || `Could not open ${target}`);
+            }
+            return ok(`Opened ${target}`);
+          } catch (error) {
+            return fail(error instanceof Error ? error.message : 'Could not open that item');
+          }
+        },
+      },
+      {
         name: 'capture_screen',
-        description: 'Capture the main display to the screenshots folder under the allowed files root.',
+        description:
+          'Capture the main display to the screenshots folder under the allowed files root.',
         inputSchema: objectSchema({}),
         handler: async (): Promise<ToolResult> => {
           try {

@@ -15,6 +15,7 @@ RENAMES = (
     ("rakaai-browser", "RakaAI-Browser"),
     ("rakaai-desktop", "RakaAI-Desktop"),
     ("rakaai-apps", "RakaAI-Apps"),
+    ("rakaai-calendar", "RakaAI-Calendar"),
 )
 
 if "rakaai-files:" in text or "mcp:rakaai-" in text:
@@ -22,6 +23,25 @@ if "rakaai-files:" in text or "mcp:rakaai-" in text:
         if old in text:
             text = text.replace(old, new)
             changed = True
+
+CALENDAR_SERVER = (
+    "  RakaAI-Calendar:\n"
+    "    title: RakaAI-Calendar\n"
+    "    description: 'RakaAI-Calendar: List and create Calendar events and Reminders on this Mac. Authored by RakaAI <raju@sulus.ai>.'\n"
+    "    type: streamable-http\n"
+    "    url: http://host.docker.internal:8765/mcp/calendar\n"
+    "    timeout: 60000\n"
+    "    apiKey:\n"
+    "      source: admin\n"
+    "      authorization_type: bearer\n"
+    "      key: '${DEVICE_MCP_TOKEN}'\n"
+)
+
+if "RakaAI-Calendar:" not in text and "RakaAI-Apps:" in text:
+    apps_end = text.find("# Definition of custom endpoints\n")
+    if apps_end != -1:
+        text = text[:apps_end] + CALENDAR_SERVER + "\n" + text[apps_end:]
+        changed = True
 
 if "title: RakaAI-Files" not in text:
     start = text.find("mcpSettings:\n  allowedAddresses:\n    - 'host.docker.internal:8765'")
@@ -52,6 +72,45 @@ if "mcp:RakaAI-Apps:slack_send_message" not in text and "mcp:RakaAI-Apps:trigger
         "        - 'mcp:RakaAI-Apps:trigger_hook'\n",
         "        - 'mcp:RakaAI-Apps:trigger_hook'\n"
         "        - 'mcp:RakaAI-Apps:slack_send_message'\n",
+        1,
+    )
+    changed = True
+
+if "mcp:RakaAI-Files:find_files" not in text and "mcp:RakaAI-Files:read_file" in text:
+    text = text.replace(
+        "        - 'mcp:RakaAI-Files:read_file'\n",
+        "        - 'mcp:RakaAI-Files:read_file'\n"
+        "        - 'mcp:RakaAI-Files:find_files'\n"
+        "        - 'mcp:RakaAI-Files:search_text'\n",
+        1,
+    )
+    changed = True
+
+if "mcp:RakaAI-Apps:slack_read_messages" not in text and "mcp:RakaAI-Apps:slack_list_channels" in text:
+    text = text.replace(
+        "        - 'mcp:RakaAI-Apps:slack_list_channels'\n",
+        "        - 'mcp:RakaAI-Apps:slack_list_channels'\n"
+        "        - 'mcp:RakaAI-Apps:slack_read_messages'\n",
+        1,
+    )
+    changed = True
+
+if "mcp:RakaAI-Calendar:list_events" not in text and "mcp:RakaAI-Apps:slack_read_messages" in text:
+    text = text.replace(
+        "        - 'mcp:RakaAI-Apps:slack_read_messages'\n",
+        "        - 'mcp:RakaAI-Apps:slack_read_messages'\n"
+        "        - 'mcp:RakaAI-Calendar:list_events'\n"
+        "        - 'mcp:RakaAI-Calendar:list_reminders'\n",
+        1,
+    )
+    changed = True
+
+if "mcp:RakaAI-Calendar:create_event" not in text and "mcp:RakaAI-Apps:slack_send_message" in text:
+    text = text.replace(
+        "        - 'mcp:RakaAI-Apps:slack_send_message'\n",
+        "        - 'mcp:RakaAI-Apps:slack_send_message'\n"
+        "        - 'mcp:RakaAI-Calendar:create_event'\n"
+        "        - 'mcp:RakaAI-Calendar:add_reminder'\n",
         1,
     )
     changed = True
@@ -89,10 +148,15 @@ if "\n    toolApproval:\n" not in text:
         "      allow:\n"
         "        - 'mcp:RakaAI-Files:list_directory'\n"
         "        - 'mcp:RakaAI-Files:read_file'\n"
+        "        - 'mcp:RakaAI-Files:find_files'\n"
+        "        - 'mcp:RakaAI-Files:search_text'\n"
         "        - 'mcp:RakaAI-Apps:list_hooks'\n"
         "        - 'mcp:RakaAI-Apps:slack_list_users'\n"
         "        - 'mcp:RakaAI-Apps:slack_search_users'\n"
         "        - 'mcp:RakaAI-Apps:slack_list_channels'\n"
+        "        - 'mcp:RakaAI-Apps:slack_read_messages'\n"
+        "        - 'mcp:RakaAI-Calendar:list_events'\n"
+        "        - 'mcp:RakaAI-Calendar:list_reminders'\n"
         "      ask:\n"
         "        - 'mcp:RakaAI-Files:write_file'\n"
         "        - 'mcp:RakaAI-Shell:*'\n"
@@ -100,6 +164,8 @@ if "\n    toolApproval:\n" not in text:
         "        - 'mcp:RakaAI-Desktop:*'\n"
         "        - 'mcp:RakaAI-Apps:trigger_hook'\n"
         "        - 'mcp:RakaAI-Apps:slack_send_message'\n"
+        "        - 'mcp:RakaAI-Calendar:create_event'\n"
+        "        - 'mcp:RakaAI-Calendar:add_reminder'\n"
         "      reason: 'Review {tool} before it runs on this Mac.'\n"
     )
     if needle in text:

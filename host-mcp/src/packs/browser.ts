@@ -6,6 +6,8 @@ export type BrowserSession = {
   open: (url: string) => Promise<string>;
   text: () => Promise<string>;
   click: (selector: string) => Promise<string>;
+  fill: (selector: string, text: string) => Promise<string>;
+  links: () => Promise<string>;
   screenshot: () => Promise<{ png: Buffer; note: string }>;
 };
 
@@ -60,7 +62,8 @@ export function createBrowserPack(config: DeviceConfig, createSession: BrowserFa
       },
       {
         name: 'click',
-        description: 'Click a CSS selector on the open page.',
+        description:
+          'Click a CSS selector on the open page. Prefer list_links when you need a link target.',
         inputSchema: objectSchema(
           {
             selector: { type: 'string', description: 'CSS selector' },
@@ -75,6 +78,47 @@ export function createBrowserPack(config: DeviceConfig, createSession: BrowserFa
             return withScreenshot(session, await session.click(String(args.selector)));
           } catch (error) {
             return fail(error instanceof Error ? error.message : 'Click failed');
+          }
+        },
+      },
+      {
+        name: 'fill',
+        description:
+          'Type into a field on the open page. selector is a CSS selector. Use this for search boxes and forms.',
+        inputSchema: objectSchema(
+          {
+            selector: { type: 'string', description: 'CSS selector for the input or textarea' },
+            text: { type: 'string', description: 'Text to type into the field' },
+          },
+          ['selector', 'text'],
+        ),
+        handler: async (args) => {
+          try {
+            if (session == null) {
+              return fail('No page is open. Call open_page first.');
+            }
+            return withScreenshot(
+              session,
+              await session.fill(String(args.selector), String(args.text ?? '')),
+            );
+          } catch (error) {
+            return fail(error instanceof Error ? error.message : 'Fill failed');
+          }
+        },
+      },
+      {
+        name: 'list_links',
+        description:
+          'List visible links on the open page as text and URL. Call this before click when you do not have a selector.',
+        inputSchema: objectSchema({}),
+        handler: async () => {
+          try {
+            if (session == null) {
+              return fail('No page is open. Call open_page first.');
+            }
+            return ok(await session.links());
+          } catch (error) {
+            return fail(error instanceof Error ? error.message : 'Could not list links');
           }
         },
       },

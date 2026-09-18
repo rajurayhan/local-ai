@@ -50,6 +50,7 @@ function upsertAgent(id, version, label) {
       existing.instructions === version.instructions &&
       existing.description === version.description &&
       existing.artifacts === version.artifacts &&
+      existing.model === version.model &&
       Boolean(existing.stateful_code_sessions) === Boolean(version.stateful_code_sessions);
     if (same) {
       print(`Agent ${id} already synced (${label}).`);
@@ -128,7 +129,7 @@ upsertAgent(
     instructions: [
       'You are RakaAI. Answer the user in plain sentences.',
       '',
-      'Use file_search for documents the user uploaded in chat. Use the files tools to list or read any path on this Mac. Absolute paths and ~/... work; a relative path is under the default Documents/RakaAI folder.',
+      'Use file_search for documents the user uploaded in chat. Use the files tools to list, find, search, or read any path on this Mac. Absolute paths and ~/... work; a relative path is under the default Documents/RakaAI folder.',
       'Use file_search only when the answer is not already in this conversation. Earlier file_search passages stay in the thread — do not search again unless the user asks about something those passages do not cover.',
       '',
       'Rules:',
@@ -143,8 +144,8 @@ upsertAgent(
     mcpServerNames: ['RakaAI-Files'],
     conversation_starters: [
       'Search my uploaded files for the latest decision.',
-      'List the files in my RakaAI folder.',
-      'Read a file from an absolute path on this Mac.',
+      'Find invoices in Downloads.',
+      'Search my RakaAI folder for the word invoice.',
       'Generate an image of a quiet river at dusk.',
     ],
   }),
@@ -156,12 +157,13 @@ upsertAgent(
   baseVersion({
     name: 'RakaAI-Apps',
     description:
-      'RakaAI-Apps. Looks up Slack people and channels, sends Slack as you, and triggers webhooks. Authored by RakaAI.',
+      'RakaAI-Apps. Looks up Slack people and channels, reads recent Slack, sends Slack as you, and triggers webhooks. Authored by RakaAI.',
     instructions: [
       'You are RakaAI Apps. Answer in plain sentences.',
       'Slack messages are sent as the user, not as a bot. Wait for approval on slack_send_message.',
-      'If you only have a name, call slack_search_users first, then send with the user id or that name.',
+      'Use slack_read_messages to read a #channel or a person. If you only have a name, call slack_search_users first, then send or read with the user id or that name.',
       'Write @name in the message to mention that person. Do not use @here, @channel, or @everyone.',
+      'To reply in a thread, pass the message ts as thread on slack_send_message.',
       'For channels, use a #channel name or call slack_list_channels first.',
       'Call list_hooks before trigger_hook if you do not already know the hook id.',
       'Call one tool, then wait. After a tool result, tell the user what happened.',
@@ -170,6 +172,7 @@ upsertAgent(
     mcpServerNames: ['RakaAI-Apps'],
     conversation_starters: [
       'Who is in Slack named Ada?',
+      'What was just said in #general?',
       'Send a Slack message to #general saying the deploy finished.',
     ],
   }),
@@ -184,7 +187,7 @@ upsertAgent(
       'RakaAI-Browser. Opens JavaScript-rendered pages on this Mac through the isolated device browser. Authored by RakaAI.',
     instructions: [
       'You are RakaAI Browser. Answer in plain sentences.',
-      'Open a page before you read it, click it, or capture it. One tool per turn.',
+      'Open a page before you read it, list links, click, fill a field, or capture it. One tool per turn.',
       'Pages may take a few seconds to finish Cloudflare or JavaScript rendering.',
       'After a tool result, summarize what you see. Do not output JSON.',
     ].join('\n'),
@@ -219,11 +222,14 @@ upsertAgent(
       'RakaAI-Code. Runs Python and other languages in the local Code Interpreter sandbox. Authored by RakaAI.',
     instructions: [
       'You are RakaAI Code. Answer in plain sentences.',
-      'Use execute_code when the user asks you to run, check, plot, or transform data with code.',
-      'After a tool result, explain the output. Do not output JSON unless the user asked for it.',
-      'If code fails, read the error and try once more with a smaller program.',
+      'When the user wants code run, call the bash_tool function on the first turn. Never print the tool call as JSON or markdown.',
+      "Put the program in command, for example: python3 -c 'print(2+2)'",
+      'After the tool result, explain the real stdout. Do not invent output.',
+      'If the command fails, try once more with a simpler command.',
     ].join('\n'),
     tools: ['execute_code'],
+    model: 'llama3.1:8b',
+    model_parameters: { temperature: 0 },
     stateful_code_sessions: false,
     stateful_code_environment: 'user',
     conversation_starters: [
@@ -239,19 +245,42 @@ upsertAgent(
   baseVersion({
     name: 'RakaAI-Desktop',
     description:
-      'RakaAI-Desktop. Opens Mac apps, clicks menus, presses shortcuts, types, and captures the screen. Approval is required every time. Authored by RakaAI.',
+      'RakaAI-Desktop. Opens Mac apps or files, reads and writes the clipboard, clicks menus, presses shortcuts, types, and captures the screen. Approval is required every time. Authored by RakaAI.',
     instructions: [
       'You are RakaAI Desktop. Answer in plain sentences.',
-      'Open the app first if it is not already open. Then do one action: a menu path such as File > New, a shortcut such as command+n, or typing.',
+      'Open the app first if it is not already open. Then do one action: a menu path such as File > New, a shortcut such as command+n, typing, clipboard, or open_item for a URL or file.',
       'Do one action per turn and wait for approval. Then say what happened.',
       'Do not claim you clicked, typed, or pressed keys unless a tool result says so.',
     ].join('\n'),
     mcpServerNames: ['RakaAI-Desktop'],
     conversation_starters: [
       'What apps are open?',
-      'Open Calendar.',
-      'In Calendar, use File > New Event.',
+      'What is on my clipboard?',
+      'Open https://example.com in Safari.',
     ],
   }),
   'desktop MCP',
+);
+
+upsertAgent(
+  'agent_rakaai_calendar',
+  baseVersion({
+    name: 'RakaAI-Calendar',
+    description:
+      'RakaAI-Calendar. Lists and creates Calendar events and Reminders on this Mac. Authored by RakaAI.',
+    instructions: [
+      'You are RakaAI Calendar. Answer in plain sentences.',
+      'Use list_events for today, tomorrow, or a YYYY-MM-DD date. Use list_reminders for unfinished reminders.',
+      'create_event and add_reminder wait for approval. start looks like 2026-09-19 15:00.',
+      'Call one tool, then wait. After a tool result, tell the user what you found or created.',
+      'Do not invent events. Do not output JSON.',
+    ].join('\n'),
+    mcpServerNames: ['RakaAI-Calendar'],
+    conversation_starters: [
+      'What is on my calendar today?',
+      'What reminders are open?',
+      'Add a reminder to buy milk.',
+    ],
+  }),
+  'calendar MCP',
 );

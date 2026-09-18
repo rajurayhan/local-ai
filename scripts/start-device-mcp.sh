@@ -151,7 +151,7 @@ echo "Starting device MCP on port $PORT (files root $ROOT_FOLDER)..."
 for _ in $(seq 1 40); do
   if curl -sf "http://127.0.0.1:${PORT}/health" >/dev/null 2>&1; then
     echo "Device MCP is ready at http://127.0.0.1:${PORT}/health"
-    echo "Packs: /mcp/files /mcp/shell /mcp/browser /mcp/desktop /mcp/apps"
+    echo "Packs: /mcp/files /mcp/shell /mcp/browser /mcp/desktop /mcp/apps /mcp/calendar"
     echo "Restart the API if librechat.yaml changed: docker compose restart api"
     echo "Then: npm run start:ollama  (reseeds agents) or seed scripts/seed-rakaai-agent.mongo.js"
     echo "Browser pack uses Playwright. If a site stays on a Cloudflare check, set browser.headless to false in host-mcp/config.json"

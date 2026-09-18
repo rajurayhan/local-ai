@@ -9,6 +9,7 @@ test('share names use the RakaAI-Pack form', () => {
   assert.equal(PACK_SHARE_NAMES.browser, 'RakaAI-Browser');
   assert.equal(PACK_SHARE_NAMES.desktop, 'RakaAI-Desktop');
   assert.equal(PACK_SHARE_NAMES.apps, 'RakaAI-Apps');
+  assert.equal(PACK_SHARE_NAMES.calendar, 'RakaAI-Calendar');
 });
 
 test('each pack carries RakaAI authorship', () => {

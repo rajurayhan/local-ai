@@ -14,12 +14,34 @@ export type PageReader = {
 };
 
 type PlaywrightPage = PageReader & {
-  goto: (url: string, options: { waitUntil: 'domcontentloaded'; timeout: number }) => Promise<unknown>;
+  goto: (
+    url: string,
+    options: { waitUntil: 'domcontentloaded'; timeout: number },
+  ) => Promise<unknown>;
   click: (selector: string, options: { timeout: number }) => Promise<unknown>;
+  fill: (selector: string, value: string, options: { timeout: number }) => Promise<unknown>;
+  evaluate: (script: string) => Promise<unknown>;
   screenshot: (options: { type: 'png'; fullPage: boolean }) => Promise<Buffer>;
   url: () => string;
-  waitForLoadState?: (state: 'load' | 'networkidle', options: { timeout: number }) => Promise<unknown>;
+  waitForLoadState?: (
+    state: 'load' | 'networkidle',
+    options: { timeout: number },
+  ) => Promise<unknown>;
 };
+
+const LIST_LINKS_SCRIPT = `(() => {
+  const lines = [];
+  const seen = new Set();
+  for (const a of Array.from(document.querySelectorAll('a[href]')).slice(0, 40)) {
+    const text = (a.innerText || a.getAttribute('aria-label') || '').replace(/\\s+/g, ' ').trim();
+    const href = a.href;
+    const line = (text || '(link)') + ' ' + href;
+    if (seen.has(line)) continue;
+    seen.add(line);
+    lines.push(line);
+  }
+  return lines.join('\\n') || '(no links)';
+})()`;
 
 type PlaywrightLaunchOptions = {
   headless: boolean;
@@ -39,7 +61,10 @@ type PlaywrightContext = {
 };
 
 type PlaywrightChromium = {
-  launchPersistentContext: (userDataDir: string, options: PlaywrightLaunchOptions) => Promise<PlaywrightContext>;
+  launchPersistentContext: (
+    userDataDir: string,
+    options: PlaywrightLaunchOptions,
+  ) => Promise<PlaywrightContext>;
 };
 
 const DEFAULT_TIMEOUT_MS = 45_000;
@@ -109,7 +134,8 @@ export async function settleVisibleText(
 ): Promise<string> {
   const intervalMs = options.intervalMs ?? 400;
   const now = options.now ?? Date.now;
-  const sleep = options.sleep ?? ((ms: number) => new Promise((resolve) => setTimeout(resolve, ms)));
+  const sleep =
+    options.sleep ?? ((ms: number) => new Promise((resolve) => setTimeout(resolve, ms)));
   const deadline = now() + options.timeoutMs;
   let lastReady = '';
   let stableHits = 0;
@@ -146,7 +172,9 @@ export async function settleVisibleText(
   return visibleText(body);
 }
 
-export async function createBrowserSession(options: BrowserSessionOptions): Promise<BrowserSession> {
+export async function createBrowserSession(
+  options: BrowserSessionOptions,
+): Promise<BrowserSession> {
   try {
     return await createPlaywrightSession(options);
   } catch (error) {
@@ -160,7 +188,9 @@ export async function createBrowserSession(options: BrowserSessionOptions): Prom
 async function createPlaywrightSession(options: BrowserSessionOptions): Promise<BrowserSession> {
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const headless = options.headless ?? true;
-  const load = Function('return import("playwright")') as () => Promise<{ chromium: PlaywrightChromium }>;
+  const load = Function('return import("playwright")') as () => Promise<{
+    chromium: PlaywrightChromium;
+  }>;
   const { chromium } = await load();
   fs.mkdirSync(options.userDataDir, { recursive: true });
   const context = await launchContext(chromium, options.userDataDir, headless);
@@ -170,7 +200,9 @@ async function createPlaywrightSession(options: BrowserSessionOptions): Promise<
   return {
     open: async (url) => {
       await page.goto(url, { waitUntil: 'domcontentloaded', timeout: timeoutMs });
-      await page.waitForLoadState?.('load', { timeout: Math.min(8_000, timeoutMs) }).catch(() => undefined);
+      await page
+        .waitForLoadState?.('load', { timeout: Math.min(8_000, timeoutMs) })
+        .catch(() => undefined);
       return settleVisibleText(page, { timeoutMs });
     },
     text: async () => settleVisibleText(page, { timeoutMs }),
@@ -178,6 +210,14 @@ async function createPlaywrightSession(options: BrowserSessionOptions): Promise<
       await page.click(selector, { timeout: Math.min(10_000, timeoutMs) });
       await settleVisibleText(page, { timeoutMs }).catch(() => undefined);
       return `Clicked ${selector}`;
+    },
+    fill: async (selector, text) => {
+      await page.fill(selector, text, { timeout: Math.min(10_000, timeoutMs) });
+      return `Filled ${selector}`;
+    },
+    links: async () => {
+      const raw = await page.evaluate(LIST_LINKS_SCRIPT);
+      return typeof raw === 'string' && raw.length > 0 ? raw : '(no links)';
     },
     screenshot: async () => ({
       png: await page.screenshot({ type: 'png', fullPage: false }),
@@ -215,6 +255,7 @@ async function launchContext(
 
 export function createFetchSession(load: typeof fetch = fetch): BrowserSession {
   let lastText = '';
+  let lastHtml = '';
   return {
     open: async (url) => {
       const response = await load(url, {
@@ -230,6 +271,7 @@ export function createFetchSession(load: typeof fetch = fetch): BrowserSession {
       if (blocked) {
         throw new Error(blocked);
       }
+      lastHtml = html;
       lastText = visibleText(stripTags(html));
       return lastText;
     },
@@ -240,7 +282,20 @@ export function createFetchSession(load: typeof fetch = fetch): BrowserSession {
       return lastText;
     },
     click: async () => {
-      throw new Error('Click needs Playwright Chromium. From host-mcp run: npx playwright install chromium');
+      throw new Error(
+        'Click needs Playwright Chromium. From host-mcp run: npx playwright install chromium',
+      );
+    },
+    fill: async () => {
+      throw new Error(
+        'Fill needs Playwright Chromium. From host-mcp run: npx playwright install chromium',
+      );
+    },
+    links: async () => {
+      if (!lastHtml) {
+        throw new Error('No page is open');
+      }
+      return linksFromHtml(lastHtml);
     },
     screenshot: async () => {
       throw new Error(
@@ -248,6 +303,29 @@ export function createFetchSession(load: typeof fetch = fetch): BrowserSession {
       );
     },
   };
+}
+
+export function linksFromHtml(html: string): string {
+  const seen = new Set<string>();
+  const lines: string[] = [];
+  const re = /<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+  for (const match of html.matchAll(re)) {
+    const href = match[1]?.trim() ?? '';
+    const text = visibleText(stripTags(match[2] ?? ''));
+    if (!href || href.startsWith('javascript:')) {
+      continue;
+    }
+    const line = `${text || '(link)'} ${href}`;
+    if (seen.has(line)) {
+      continue;
+    }
+    seen.add(line);
+    lines.push(line);
+    if (lines.length >= 40) {
+      break;
+    }
+  }
+  return lines.join('\n') || '(no links)';
 }
 
 function stripTags(html: string): string {

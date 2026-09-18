@@ -1,7 +1,9 @@
 import { fail, objectSchema, ok } from '../result.ts';
 import {
   formatSlackChannels,
+  formatSlackMessages,
   formatSlackUsers,
+  resolveSlackChannel,
   sendSlackMessage,
   type SlackApi,
 } from '../slack.ts';
@@ -19,13 +21,18 @@ function slackDirectory(clients?: SlackClients): SlackApi | undefined {
   return clients?.directory ?? clients?.asUser;
 }
 
-export function createAppsPack(config: DeviceConfig, post: HttpPoster, slack?: SlackClients): PackDraft {
+export function createAppsPack(
+  config: DeviceConfig,
+  post: HttpPoster,
+  slack?: SlackClients,
+): PackDraft {
   return {
     name: 'apps',
     tools: [
       {
         name: 'list_hooks',
-        description: 'List configured app webhooks this agent may trigger (n8n, Slack, and similar).',
+        description:
+          'List configured app webhooks this agent may trigger (n8n, Slack, and similar).',
         inputSchema: objectSchema({}),
         handler: async () => {
           if (config.apps.hooks.length === 0) {
@@ -82,7 +89,8 @@ export function createAppsPack(config: DeviceConfig, post: HttpPoster, slack?: S
       },
       {
         name: 'slack_list_users',
-        description: 'List people in the Slack workspace. Optional cursor continues a previous page. Limit defaults to 100 and maxes at 200.',
+        description:
+          'List people in the Slack workspace. Optional cursor continues a previous page. Limit defaults to 100 and maxes at 200.',
         inputSchema: objectSchema({
           cursor: { type: 'string', description: 'next_cursor from a previous list' },
           limit: { type: 'string', description: 'Page size from 1 to 200. Defaults to 100.' },
@@ -108,7 +116,8 @@ export function createAppsPack(config: DeviceConfig, post: HttpPoster, slack?: S
       },
       {
         name: 'slack_search_users',
-        description: 'Search Slack people by name, handle, or email. Use the returned user id to send a message.',
+        description:
+          'Search Slack people by name, handle, or email. Use the returned user id to send a message.',
         inputSchema: objectSchema(
           {
             query: { type: 'string', description: 'Name, @handle, or email' },
@@ -145,7 +154,9 @@ export function createAppsPack(config: DeviceConfig, post: HttpPoster, slack?: S
               return ok(formatSlackChannels(await directory.searchChannels(query)));
             }
             const cursor = String(args.cursor ?? '').trim();
-            const page = await directory.listChannels({ cursor: cursor.length > 0 ? cursor : undefined });
+            const page = await directory.listChannels({
+              cursor: cursor.length > 0 ? cursor : undefined,
+            });
             return ok(formatSlackChannels(page.channels, page.nextCursor));
           } catch (error) {
             return fail(error instanceof Error ? error.message : 'Slack list channels failed');
@@ -153,16 +164,52 @@ export function createAppsPack(config: DeviceConfig, post: HttpPoster, slack?: S
         },
       },
       {
+        name: 'slack_read_messages',
+        description:
+          'Read recent Slack messages as you from a #channel, a person, an email, or a Slack id. Newest first. limit defaults to 20 and maxes at 50.',
+        inputSchema: objectSchema(
+          {
+            to: { type: 'string', description: '#channel, person name, Slack user id, or email' },
+            limit: {
+              type: 'string',
+              description: 'How many messages to return, from 1 to 50. Defaults to 20.',
+            },
+          },
+          ['to'],
+        ),
+        handler: async (args) => {
+          if (slack?.asUser == null || config.apps.slackUserToken.length === 0) {
+            return fail(SLACK_USER_SETUP);
+          }
+          try {
+            const channel = await resolveSlackChannel(slack.asUser, String(args.to ?? ''));
+            const rawLimit = String(args.limit ?? '').trim();
+            const limit = rawLimit.length > 0 ? Number(rawLimit) : undefined;
+            return ok(
+              formatSlackMessages(
+                await slack.asUser.history(channel, {
+                  limit: Number.isFinite(limit) ? limit : undefined,
+                }),
+              ),
+            );
+          } catch (error) {
+            return fail(error instanceof Error ? error.message : 'Slack read failed');
+          }
+        },
+      },
+      {
         name: 'slack_send_message',
         description:
-          'Send a Slack message as the signed-in user to a #channel, a person name, an email, or a Slack user id. @name in the text mentions that person when the name is unique. @here, @channel, and @everyone are refused. Requires SLACK_USER_TOKEN.',
+          'Send a Slack message as the signed-in user to a #channel, a person name, an email, or a Slack user id. Optional thread is a message ts to reply in. @name in the text mentions that person when the name is unique. @here, @channel, and @everyone are refused. Requires SLACK_USER_TOKEN.',
         inputSchema: objectSchema(
           {
             to: { type: 'string', description: '#channel, person name, Slack user id, or email' },
             text: {
               type: 'string',
-              description: 'Message text. @name mentions one person; @here, @channel, and @everyone are not allowed.',
+              description:
+                'Message text. @name mentions one person; @here, @channel, and @everyone are not allowed.',
             },
+            thread: { type: 'string', description: 'Optional message ts to reply in that thread' },
           },
           ['to', 'text'],
         ),
@@ -171,7 +218,15 @@ export function createAppsPack(config: DeviceConfig, post: HttpPoster, slack?: S
             return fail(SLACK_USER_SETUP);
           }
           try {
-            return ok(await sendSlackMessage(slack.asUser, String(args.to ?? ''), String(args.text ?? '')));
+            const thread = String(args.thread ?? '').trim();
+            return ok(
+              await sendSlackMessage(
+                slack.asUser,
+                String(args.to ?? ''),
+                String(args.text ?? ''),
+                thread.length > 0 ? thread : undefined,
+              ),
+            );
           } catch (error) {
             return fail(error instanceof Error ? error.message : 'Slack send failed');
           }

@@ -3,7 +3,7 @@ import type { TAttachment, TFile } from 'librechat-data-provider';
 
 export const BROWSER_PACK_NAME = 'RakaAI-Browser';
 
-const VIEW_TOOLS = new Set(['open_page', 'click', 'capture_page']);
+const VIEW_TOOLS = new Set(['open_page', 'click', 'fill', 'capture_page']);
 
 export type BrowserViewport = {
   conversationId: string;

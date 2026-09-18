@@ -3,7 +3,15 @@ import { test } from 'node:test';
 
 import type { HttpPoster } from './types.ts';
 import type { SlackApi } from './slack.ts';
-import { classifySlackTo, createSlackApi, resolveSlackMentions, sendSlackMessage, slackPersonMatches } from './slack.ts';
+import {
+  classifySlackTo,
+  createSlackApi,
+  formatSlackMessages,
+  resolveSlackChannel,
+  resolveSlackMentions,
+  sendSlackMessage,
+  slackPersonMatches,
+} from './slack.ts';
 
 function fakeSlack(over: Partial<SlackApi> = {}): SlackApi {
   return {
@@ -17,6 +25,7 @@ function fakeSlack(over: Partial<SlackApi> = {}): SlackApi {
     openIm: async () => {
       throw new Error('should not open');
     },
+    history: async () => [],
     postMessage: async (channel, text) => `Sent as you to ${channel}:${text}`,
     ...over,
   };
@@ -145,7 +154,14 @@ test('createSlackApi search walks later user pages', async () => {
         status: 200,
         body: JSON.stringify({
           ok: true,
-          members: [{ id: 'U9', name: 'grace', real_name: 'Grace Hopper', profile: { display_name: 'Amazing Grace' } }],
+          members: [
+            {
+              id: 'U9',
+              name: 'grace',
+              real_name: 'Grace Hopper',
+              profile: { display_name: 'Amazing Grace' },
+            },
+          ],
         }),
       };
     }
@@ -188,8 +204,14 @@ test('resolveSlackMentions leaves plain text and emails alone', async () => {
       throw new Error('should not search');
     },
   });
-  assert.equal(await resolveSlackMentions(slack, 'shipped to ada@example.com'), 'shipped to ada@example.com');
-  assert.equal(await resolveSlackMentions(slack, 'already <@U9> mentioned'), 'already <@U9> mentioned');
+  assert.equal(
+    await resolveSlackMentions(slack, 'shipped to ada@example.com'),
+    'shipped to ada@example.com',
+  );
+  assert.equal(
+    await resolveSlackMentions(slack, 'already <@U9> mentioned'),
+    'already <@U9> mentioned',
+  );
 });
 
 test('resolveSlackMentions converts a Slack user id mention without searching', async () => {
@@ -207,7 +229,9 @@ test('resolveSlackMentions searches a dotted handle once when repeated', async (
     searchUsers: async (query) => {
       searches += 1;
       assert.equal(query, 'ada.lovelace');
-      return [{ id: 'U2', name: 'ada.lovelace', realName: 'Ada Lovelace', deleted: false, bot: false }];
+      return [
+        { id: 'U2', name: 'ada.lovelace', realName: 'Ada Lovelace', deleted: false, bot: false },
+      ];
     },
   });
   assert.equal(
@@ -295,4 +319,44 @@ test('createSlackApi looks up email then posts through HTTP', async () => {
   assert.match(calls[1]?.url ?? '', /conversations\.open$/);
   assert.equal(calls[2]?.method, 'POST');
   assert.match(calls[2]?.url ?? '', /chat\.postMessage$/);
+});
+
+test('formats Slack messages and resolves a channel id', async () => {
+  assert.equal(formatSlackMessages([]), 'No messages.');
+  assert.equal(
+    formatSlackMessages([{ ts: '1.0', user: 'U1', text: 'hi', threadTs: '1.0' }]),
+    'U1 1.0\nhi',
+  );
+  const channel = await resolveSlackChannel(
+    fakeSlack({
+      searchChannels: async () => [{ id: 'C9', name: 'general', private: false, member: true }],
+    }),
+    '#general',
+  );
+  assert.equal(channel, 'C9');
+  const byId = await resolveSlackChannel(fakeSlack(), 'C012ABCDE');
+  assert.equal(byId, 'C012ABCDE');
+});
+
+test('createSlackApi reads history and posts a thread reply', async () => {
+  const calls: Array<{ url: string; body?: string }> = [];
+  const post: HttpPoster = async (url, options) => {
+    calls.push({ url, body: options.body });
+    if (url.includes('conversations.history')) {
+      return {
+        status: 200,
+        body: JSON.stringify({
+          ok: true,
+          messages: [{ ts: '9.0', user: 'U2', text: 'hello', thread_ts: '9.0' }],
+        }),
+      };
+    }
+    return { status: 200, body: JSON.stringify({ ok: true, ts: '9.1' }) };
+  };
+  const slack = createSlackApi('xoxp-test', post, 1000, 4000);
+  const messages = await slack.history('C1', { limit: 10 });
+  assert.equal(messages[0]?.text, 'hello');
+  const sent = await slack.postMessage('C1', 'ack', '9.0');
+  assert.match(sent, /9.1/);
+  assert.match(calls[1]?.body ?? '', /thread_ts/);
 });

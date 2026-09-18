@@ -7,6 +7,7 @@ import {
   FETCH_NEEDS_BROWSER,
   createFetchSession,
   explainUnreadableHtml,
+  linksFromHtml,
   isChallengeText,
   isMissingPlaywright,
   isThinContent,
@@ -24,20 +25,29 @@ test('detects Cloudflare and similar challenge copy', () => {
 test('treats short or empty bodies as unrendered', () => {
   assert.equal(isThinContent(''), true);
   assert.equal(isThinContent('Loading'), true);
-  assert.equal(isThinContent('A full article about how the dashboard hydrates after the app bundle loads.'), false);
+  assert.equal(
+    isThinContent('A full article about how the dashboard hydrates after the app bundle loads.'),
+    false,
+  );
 });
 
 test('raw HTML from a challenge or empty SPA needs a real browser', () => {
   assert.equal(
-    explainUnreadableHtml('<html><title>Just a moment...</title><body>Checking your browser</body></html>'),
+    explainUnreadableHtml(
+      '<html><title>Just a moment...</title><body>Checking your browser</body></html>',
+    ),
     FETCH_NEEDS_BROWSER,
   );
   assert.equal(
-    explainUnreadableHtml('<html><body><div id="root"></div><script src="/app.js"></script></body></html>'),
+    explainUnreadableHtml(
+      '<html><body><div id="root"></div><script src="/app.js"></script></body></html>',
+    ),
     FETCH_NEEDS_BROWSER,
   );
   assert.equal(
-    explainUnreadableHtml('<html><body><p>Hello from a static page with enough text to keep.</p></body></html>'),
+    explainUnreadableHtml(
+      '<html><body><p>Hello from a static page with enough text to keep.</p></body></html>',
+    ),
     undefined,
   );
 });
@@ -107,19 +117,37 @@ test('settleVisibleText throws when JavaScript never paints content', async () =
 });
 
 test('fetch session refuses challenge HTML and returns static text', async () => {
-  const blocked = createFetchSession(async () => new Response('<title>Just a moment...</title>', { status: 403 }));
-  await assert.rejects(() => blocked.open('https://example.com'), (error: unknown) => {
-    return error instanceof Error && error.message === FETCH_NEEDS_BROWSER;
-  });
+  const blocked = createFetchSession(
+    async () => new Response('<title>Just a moment...</title>', { status: 403 }),
+  );
+  await assert.rejects(
+    () => blocked.open('https://example.com'),
+    (error: unknown) => {
+      return error instanceof Error && error.message === FETCH_NEEDS_BROWSER;
+    },
+  );
 
   const ok = createFetchSession(
-    async () => new Response('<html><body><p>Hello from a static page with enough text to keep.</p></body></html>'),
+    async () =>
+      new Response(
+        '<html><body><p>Hello from a static page with enough text to keep.</p><a href="/docs">Docs</a></body></html>',
+      ),
   );
   assert.match(await ok.open('https://example.com'), /Hello from a static page/);
+  assert.match(await ok.links(), /Docs \/docs/);
+});
+
+test('linksFromHtml extracts unique anchors and skips javascript urls', () => {
+  const html =
+    '<a href="/a">One</a><a href="/a">One</a><a href="javascript:void(0)">Nope</a><a href="/b">Two</a>';
+  assert.equal(linksFromHtml(html), 'One /a\nTwo /b');
+  assert.equal(linksFromHtml('<p>none</p>'), '(no links)');
 });
 
 test('isMissingPlaywright recognizes a failed dynamic import', () => {
-  const missing = Object.assign(new Error("Cannot find package 'playwright'"), { code: 'ERR_MODULE_NOT_FOUND' });
+  const missing = Object.assign(new Error("Cannot find package 'playwright'"), {
+    code: 'ERR_MODULE_NOT_FOUND',
+  });
   assert.equal(isMissingPlaywright(missing), true);
   assert.equal(isMissingPlaywright(new Error('Executable does not exist')), false);
 });

@@ -90,6 +90,7 @@ test('health lists the shared pack names', async () => {
     'RakaAI-Browser',
     'RakaAI-Desktop',
     'RakaAI-Apps',
+    'RakaAI-Calendar',
   ]);
 });
 
@@ -116,7 +117,11 @@ test('rejects unknown sessions instead of opening a new one', async () => {
 test('keeps the shell session for the request after initialize', async () => {
   const sessionId = await initializeShell();
 
-  const listed = await mcpPost('/mcp/shell', { jsonrpc: '2.0', id: 2, method: 'tools/list' }, sessionId);
+  const listed = await mcpPost(
+    '/mcp/shell',
+    { jsonrpc: '2.0', id: 2, method: 'tools/list' },
+    sessionId,
+  );
   assert.equal(listed.response.status, 200);
   const listedData = sseData(listed.text);
   const result = listedData.result as { tools: Array<{ name: string }> };

@@ -29,20 +29,33 @@ function fakeSlack(over: Partial<SlackApi> = {}): SlackApi {
       nextCursor: options.limit === 200 ? undefined : 'more',
     }),
     searchUsers: async () => [
-      { id: 'U1', name: 'ada', realName: 'Ada Lovelace', email: 'ada@example.com', deleted: false, bot: false },
+      {
+        id: 'U1',
+        name: 'ada',
+        realName: 'Ada Lovelace',
+        email: 'ada@example.com',
+        deleted: false,
+        bot: false,
+      },
     ],
-    listChannels: async () => ({ channels: [{ id: 'C1', name: 'general', private: false, member: true }] }),
+    listChannels: async () => ({
+      channels: [{ id: 'C1', name: 'general', private: false, member: true }],
+    }),
     searchChannels: async () => [{ id: 'C1', name: 'general', private: false, member: true }],
     openIm: async () => 'D1',
+    history: async () => [{ ts: '1.0', user: 'U1', text: 'shipped' }],
     postMessage: async (channel, text) => `ok ${channel} ${text}`,
     ...over,
   };
 }
 
 test('lists hooks and refuses unknown ids', async () => {
-  const pack = createAppsPack(defaultConfig({ apps: { hooks: [], timeoutMs: 1000, maxResponseBytes: 100 } }), async () => {
-    throw new Error('should not post');
-  });
+  const pack = createAppsPack(
+    defaultConfig({ apps: { hooks: [], timeoutMs: 1000, maxResponseBytes: 100 } }),
+    async () => {
+      throw new Error('should not post');
+    },
+  );
   const list = pack.tools.find((tool) => tool.name === 'list_hooks');
   const trigger = pack.tools.find((tool) => tool.name === 'trigger_hook');
   assert.ok(list);
@@ -112,21 +125,35 @@ test('slack tools use the injected Slack API and refuse when the user token is m
     { asUser: slack, directory: slack },
   );
   const wired = pack.tools.find((tool) => tool.name === 'slack_send_message');
+  const read = pack.tools.find((tool) => tool.name === 'slack_read_messages');
   const users = pack.tools.find((tool) => tool.name === 'slack_list_users');
   const search = pack.tools.find((tool) => tool.name === 'slack_search_users');
   const channels = pack.tools.find((tool) => tool.name === 'slack_list_channels');
-  assert.ok(wired && users && search && channels);
+  assert.ok(wired && read && users && search && channels);
   const sent = await wired.handler({ to: '#general', text: 'shipped' });
   assert.equal(sent.isError, undefined);
   assert.match(sent.content[0].type === 'text' ? sent.content[0].text : '', /ok general shipped/);
   const mentioned = await wired.handler({ to: '#general', text: 'hey @Ada' });
   assert.equal(mentioned.isError, undefined);
-  assert.match(mentioned.content[0].type === 'text' ? mentioned.content[0].text : '', /ok general hey <@U1>/);
+  assert.match(
+    mentioned.content[0].type === 'text' ? mentioned.content[0].text : '',
+    /ok general hey <@U1>/,
+  );
   const listed = await users.handler({ limit: '200' });
   assert.match(listed.content[0].type === 'text' ? listed.content[0].text : '', /Ada Lovelace/);
-  assert.doesNotMatch(listed.content[0].type === 'text' ? listed.content[0].text : '', /next_cursor/);
+  assert.doesNotMatch(
+    listed.content[0].type === 'text' ? listed.content[0].text : '',
+    /next_cursor/,
+  );
   const found = await search.handler({ query: 'ada' });
   assert.match(found.content[0].type === 'text' ? found.content[0].text : '', /U1/);
   const channelList = await channels.handler({ query: 'gen' });
-  assert.match(channelList.content[0].type === 'text' ? channelList.content[0].text : '', /#general/);
+  assert.match(
+    channelList.content[0].type === 'text' ? channelList.content[0].text : '',
+    /#general/,
+  );
+  const history = await read.handler({ to: '#general' });
+  assert.match(history.content[0].type === 'text' ? history.content[0].text : '', /U1 1.0/);
+  const reply = await wired.handler({ to: '#general', text: 'ack', thread: '1.0' });
+  assert.equal(reply.isError, undefined);
 });
