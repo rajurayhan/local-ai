@@ -122,6 +122,9 @@ if "DEVICE_MCP_TOKEN=" not in text:
     import secrets
     text += f"\nDEVICE_MCP_TOKEN={secrets.token_urlsafe(32)}\n"
     changed = True
+if "LIBRECHAT_CODE_BASEURL=" not in text or "LIBRECHAT_CODE_BASEURL=\n" in text:
+    text += "\nLIBRECHAT_CODE_BASEURL=http://host.docker.internal:3112/v1\n"
+    changed = True
 if changed:
     path.write_text(text)
     print("Updated .env for RakaAI, search, and local RAG")
@@ -136,6 +139,21 @@ services:
   api:
     environment:
       - DEVICE_MCP_TOKEN=${DEVICE_MCP_TOKEN}
+      - LIBRECHAT_CODE_BASEURL=${LIBRECHAT_CODE_BASEURL}
+      - LIBRECHAT_CODE_BASEURL_STATEFUL=${LIBRECHAT_CODE_BASEURL_STATEFUL}
+      - CODE_ENVIRONMENT_DECISION_VERSION=${CODE_ENVIRONMENT_DECISION_VERSION}
+      - CODEAPI_AUTH_PROVIDER=${CODEAPI_AUTH_PROVIDER}
+      - CODEAPI_JWT_ENABLED=${CODEAPI_JWT_ENABLED}
+      - CODEAPI_JWT_PRIVATE_JWK_JSON=${CODEAPI_JWT_PRIVATE_JWK_JSON}
+      - CODEAPI_JWT_ALGORITHM=${CODEAPI_JWT_ALGORITHM}
+      - CODEAPI_JWT_KID=${CODEAPI_JWT_KID}
+      - CODEAPI_JWT_ISSUER=${CODEAPI_JWT_ISSUER}
+      - CODEAPI_JWT_AUDIENCE=${CODEAPI_JWT_AUDIENCE}
+      - CODEAPI_JWT_TTL_SECONDS=${CODEAPI_JWT_TTL_SECONDS}
+      - CODEAPI_JWT_MINT_CACHE_SECONDS=${CODEAPI_JWT_MINT_CACHE_SECONDS}
+      - CODEAPI_JWT_SINGLE_TENANT_ID=${CODEAPI_JWT_SINGLE_TENANT_ID}
+      - CODE_SANDBOX_PREWARM=${CODE_SANDBOX_PREWARM}
+      - LIBRECHAT_CODE_SANDBOX_OUTPUT_MAX_SIZE=${LIBRECHAT_CODE_SANDBOX_OUTPUT_MAX_SIZE}
     volumes:
       - type: bind
         source: ./librechat.yaml
@@ -150,6 +168,37 @@ services:
 EOF
     echo "Wrote docker-compose.override.yaml so RakaAI loads librechat.yaml."
     return
+  fi
+
+  if ! grep -q 'LIBRECHAT_CODE_BASEURL' "$override"; then
+    python3 - "$override" <<'PY'
+from pathlib import Path
+import sys
+path = Path(sys.argv[1])
+text = path.read_text()
+needle = "      - DEVICE_MCP_TOKEN=${DEVICE_MCP_TOKEN}\n"
+extra = (
+    "      - DEVICE_MCP_TOKEN=${DEVICE_MCP_TOKEN}\n"
+    "      - LIBRECHAT_CODE_BASEURL=${LIBRECHAT_CODE_BASEURL}\n"
+    "      - LIBRECHAT_CODE_BASEURL_STATEFUL=${LIBRECHAT_CODE_BASEURL_STATEFUL}\n"
+    "      - CODE_ENVIRONMENT_DECISION_VERSION=${CODE_ENVIRONMENT_DECISION_VERSION}\n"
+    "      - CODEAPI_AUTH_PROVIDER=${CODEAPI_AUTH_PROVIDER}\n"
+    "      - CODEAPI_JWT_ENABLED=${CODEAPI_JWT_ENABLED}\n"
+    "      - CODEAPI_JWT_PRIVATE_JWK_JSON=${CODEAPI_JWT_PRIVATE_JWK_JSON}\n"
+    "      - CODEAPI_JWT_ALGORITHM=${CODEAPI_JWT_ALGORITHM}\n"
+    "      - CODEAPI_JWT_KID=${CODEAPI_JWT_KID}\n"
+    "      - CODEAPI_JWT_ISSUER=${CODEAPI_JWT_ISSUER}\n"
+    "      - CODEAPI_JWT_AUDIENCE=${CODEAPI_JWT_AUDIENCE}\n"
+    "      - CODEAPI_JWT_TTL_SECONDS=${CODEAPI_JWT_TTL_SECONDS}\n"
+    "      - CODEAPI_JWT_MINT_CACHE_SECONDS=${CODEAPI_JWT_MINT_CACHE_SECONDS}\n"
+    "      - CODEAPI_JWT_SINGLE_TENANT_ID=${CODEAPI_JWT_SINGLE_TENANT_ID}\n"
+    "      - CODE_SANDBOX_PREWARM=${CODE_SANDBOX_PREWARM}\n"
+    "      - LIBRECHAT_CODE_SANDBOX_OUTPUT_MAX_SIZE=${LIBRECHAT_CODE_SANDBOX_OUTPUT_MAX_SIZE}\n"
+)
+if needle in text:
+    path.write_text(text.replace(needle, extra, 1))
+    print("Added Code Interpreter env passthrough to docker-compose.override.yaml")
+PY
   fi
 
   if ! grep -q 'DEVICE_MCP_TOKEN' "$override"; then
@@ -269,6 +318,7 @@ wait_for_app() {
       echo "Chat: endpoint RakaAI, or a RakaAI Agent for files, images, or device tools."
       echo "Image generation: npm run start:image-gen  (Flux proxy on :7860)."
       echo "Device actions:   npm run start:device-mcp (host MCP on :8765; Slack uses SLACK_BOT_TOKEN)."
+      echo "Code interpreter: npm run start:code-interpreter (sandbox on :3112 / stateful :3114)."
       return
     fi
     sleep 2
@@ -293,4 +343,7 @@ compose up -d
 wait_for_app
 if docker exec chat-mongodb mongosh --eval 'db.runCommand({ ping: 1 })' >/dev/null 2>&1; then
   docker exec -i chat-mongodb mongosh LibreChat --quiet < "$ROOT_DIR/scripts/seed-rakaai-agent.mongo.js"
+fi
+if [[ -d "${CODE_INTERPRETER_DIR:-$ROOT_DIR/../code-interpreter}" ]]; then
+  bash "$ROOT_DIR/scripts/start-code-interpreter.sh" || echo "Code Interpreter did not finish starting. Run npm run start:code-interpreter."
 fi

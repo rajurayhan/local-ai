@@ -15,7 +15,9 @@
   },
   "browser": {
     "allowedDomains": [],
-    "userDataDir": "~/Documents/RakaAI/.browser-profile"
+    "userDataDir": "~/Documents/RakaAI/.browser-profile",
+    "headless": true,
+    "timeoutMs": 45000
   },
   "desktop": {
     "screenshotDir": "~/Documents/RakaAI/screenshots"

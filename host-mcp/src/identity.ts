@@ -16,7 +16,7 @@ export const PACK_SHARE_NAMES = {
 const SUMMARIES: Record<PackName, string> = {
   files: 'Read files under the allowed folder on this Mac.',
   shell: 'Run one allowlisted program in the allowed folder.',
-  browser: 'Open and read web pages in an isolated browser.',
+  browser: 'Open JavaScript-rendered pages in an isolated browser and return visible text.',
   desktop: 'Open Mac apps, click menus, press shortcuts, type, and capture the screen.',
   apps: 'Look up Slack people and channels, send Slack messages as you, and trigger configured app webhooks.',
 };

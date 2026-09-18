@@ -120,6 +120,14 @@ if [[ ! -d "$HOST_MCP_DIR/node_modules" ]]; then
   (cd "$HOST_MCP_DIR" && npm install)
 fi
 
+if [[ ! -x "$HOST_MCP_DIR/node_modules/.bin/playwright" ]]; then
+  echo "Installing Playwright for the browser pack..."
+  (cd "$HOST_MCP_DIR" && npm install)
+fi
+
+echo "Ensuring Playwright Chromium is installed..."
+(cd "$HOST_MCP_DIR" && npx playwright install chromium)
+
 if [[ -f "$ROOT_DIR/librechat.yaml" ]]; then
   python3 "$ROOT_DIR/scripts/ensure-device-mcp-yaml.py" \
     "$ROOT_DIR/librechat.yaml" \
@@ -146,7 +154,7 @@ for _ in $(seq 1 40); do
     echo "Packs: /mcp/files /mcp/shell /mcp/browser /mcp/desktop /mcp/apps"
     echo "Restart the API if librechat.yaml changed: docker compose restart api"
     echo "Then: npm run start:ollama  (reseeds agents) or seed scripts/seed-rakaai-agent.mongo.js"
-    echo "Optional click/screenshot in the browser pack: cd host-mcp && npm install playwright && npx playwright install chromium"
+    echo "Browser pack uses Playwright. If a site stays on a Cloudflare check, set browser.headless to false in host-mcp/config.json"
     exit 0
   fi
   sleep 0.25

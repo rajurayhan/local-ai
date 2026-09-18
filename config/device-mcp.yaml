@@ -26,7 +26,7 @@ mcpServers:
       key: '${DEVICE_MCP_TOKEN}'
   RakaAI-Browser:
     title: RakaAI-Browser
-    description: 'RakaAI-Browser: Open and read web pages in an isolated browser. Authored by RakaAI <raju@sulus.ai>.'
+    description: 'RakaAI-Browser: Open JavaScript-rendered pages in an isolated browser and return visible text. Authored by RakaAI <raju@sulus.ai>.'
     type: streamable-http
     url: http://host.docker.internal:8765/mcp/browser
     timeout: 120000

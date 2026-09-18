@@ -72,6 +72,8 @@ export type DeviceConfig = {
   browser: {
     allowedDomains: string[];
     userDataDir: string;
+    headless: boolean;
+    timeoutMs: number;
   };
   desktop: {
     screenshotDir: string;

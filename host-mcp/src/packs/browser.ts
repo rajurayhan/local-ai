@@ -24,7 +24,8 @@ export function createBrowserPack(config: DeviceConfig, createSession: BrowserFa
     tools: [
       {
         name: 'open_page',
-        description: 'Open an http(s) page in the isolated browser and return visible text.',
+        description:
+          'Open an http(s) page in the isolated browser, wait for JavaScript and bot checks, and return visible text.',
         inputSchema: objectSchema(
           {
             url: { type: 'string', description: 'http or https URL' },

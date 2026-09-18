@@ -16,15 +16,16 @@ Shared MCP names:
 npm run start:device-mcp
 ```
 
-That command installs dependencies, writes `config.json` if needed, fills `DEVICE_MCP_TOKEN` in `.env`, wires `librechat.yaml`, and listens on port 8765.
+That command installs dependencies and Playwright Chromium, writes `config.json` if needed, fills `DEVICE_MCP_TOKEN` in `.env`, wires `librechat.yaml`, and listens on port 8765.
 
 Use a **RakaAI agent**, not the plain Ollama chat picker. Packs are split across agents so a 7B model is not given every tool at once:
 
 - RakaAI — uploaded files, `~/Documents/RakaAI`, images when asked (`RakaAI-Files`)
 - RakaAI-Apps — Slack as you (`SLACK_USER_TOKEN`), optional bot listing (`SLACK_BOT_TOKEN`), and configured webhooks (`apps.hooks` in `config.json`)
-- RakaAI-Browser — isolated page open / read; install Playwright for click and screenshot
+- RakaAI-Browser — isolated Playwright session; waits for JavaScript and Cloudflare checks. Set `browser.headless` to `false` in `config.json` if a site still sticks on a challenge.
 - RakaAI-Shell — one program at a time under the allowed folder; approval required
 - RakaAI-Desktop — open apps, click menus, press shortcuts, type, screenshot; approval required; macOS Accessibility / Screen Recording prompts
+- RakaAI-Code — sandboxed Code Interpreter (`npm run start:code-interpreter`)
 
 Writes to disk stay off until `files.writes` is true in `config.json`. Restart the API after YAML changes: `docker compose restart api`.
 

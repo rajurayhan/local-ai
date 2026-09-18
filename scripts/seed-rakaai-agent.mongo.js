@@ -173,10 +173,11 @@ upsertAgent(
   'agent_rakaai_browser',
   baseVersion({
     name: 'RakaAI-Browser',
-    description: 'RakaAI-Browser. Opens web pages on this Mac through the isolated device browser. Authored by RakaAI.',
+    description: 'RakaAI-Browser. Opens JavaScript-rendered pages on this Mac through the isolated device browser. Authored by RakaAI.',
     instructions: [
       'You are RakaAI Browser. Answer in plain sentences.',
       'Open a page before you read it, click it, or capture it. One tool per turn.',
+      'Pages may take a few seconds to finish Cloudflare or JavaScript rendering.',
       'After a tool result, summarize what you see. Do not output JSON.',
     ].join('\n'),
     mcpServerNames: ['RakaAI-Browser'],
@@ -199,6 +200,28 @@ upsertAgent(
     conversation_starters: ['List the files in the allowed folder.'],
   }),
   'shell MCP',
+);
+
+upsertAgent(
+  'agent_rakaai_code',
+  baseVersion({
+    name: 'RakaAI-Code',
+    description: 'RakaAI-Code. Runs Python and other languages in the local Code Interpreter sandbox. Authored by RakaAI.',
+    instructions: [
+      'You are RakaAI Code. Answer in plain sentences.',
+      'Use execute_code when the user asks you to run, check, plot, or transform data with code.',
+      'After a tool result, explain the output. Do not output JSON unless the user asked for it.',
+      'If code fails, read the error and try once more with a smaller program.',
+    ].join('\n'),
+    tools: ['execute_code'],
+    stateful_code_sessions: true,
+    stateful_code_environment: 'user',
+    conversation_starters: [
+      'Run a Python snippet that prints 2 + 2.',
+      'Plot a simple sine wave and save it as an image.',
+    ],
+  }),
+  'code interpreter',
 );
 
 upsertAgent(

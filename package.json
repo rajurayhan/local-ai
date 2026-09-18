@@ -35,6 +35,7 @@
     "stop:ollama": "bash scripts/stop-with-ollama.sh",
     "start:image-gen": "bash scripts/start-image-gen.sh",
     "start:device-mcp": "bash scripts/start-device-mcp.sh",
+    "start:code-interpreter": "bash scripts/start-code-interpreter.sh",
     "upgrade": "node config/upgrade.js",
     "create-user": "node config/create-user.js",
     "invite-user": "node config/invite-user.js",

@@ -59,6 +59,8 @@ export function defaultConfig(overrides: ConfigOverrides = {}): DeviceConfig {
       userDataDir: expandHome(
         overrides.browser?.userDataDir ?? path.join(root, '.browser-profile'),
       ),
+      headless: overrides.browser?.headless ?? true,
+      timeoutMs: overrides.browser?.timeoutMs ?? 45_000,
     },
     desktop: {
       screenshotDir: expandHome(

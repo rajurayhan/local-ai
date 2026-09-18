@@ -31,7 +31,15 @@ export function createPacks(config: DeviceConfig): Record<PackName, Pack> {
   return {
     files: withIdentity(createFilesPack(config)),
     shell: withIdentity(createShellPack(config, runCommand)),
-    browser: withIdentity(createBrowserPack(config, () => createBrowserSession(config.browser.userDataDir))),
+    browser: withIdentity(
+      createBrowserPack(config, () =>
+        createBrowserSession({
+          userDataDir: config.browser.userDataDir,
+          headless: config.browser.headless,
+          timeoutMs: config.browser.timeoutMs,
+        }),
+      ),
+    ),
     desktop: withIdentity(createDesktopPack(config, runCommand)),
     apps: withIdentity(
       createAppsPack(config, postJson, slackClients(config, postJson)),
