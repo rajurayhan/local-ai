@@ -408,6 +408,20 @@ describe('Server Configuration', () => {
     }
   });
 
+  it('serves the deployment brand in the shell title', async () => {
+    const [fallbackResponse, indexResponse] = await Promise.all([
+      request(app).get('/this/does/not/exist'),
+      request(app).get('/index.html'),
+    ]);
+
+    for (const response of [fallbackResponse, indexResponse]) {
+      expect(response.status).toBe(200);
+      expect(response.text).toContain('<title>RakaAI</title>');
+      expect(response.text).toContain('"appTitle":"RakaAI"');
+      expect(response.text).not.toContain('<title>LibreChat</title>');
+    }
+  });
+
   it('should return 500 for unknown errors via ErrorController', async () => {
     // Testing the error handling here on top of unit tests to ensure the middleware is correctly integrated
 

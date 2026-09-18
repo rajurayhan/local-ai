@@ -64,10 +64,11 @@ function flattenPaths(routes: RouteNode[]): string[] {
   ]);
 }
 
-describe('skills routes', () => {
-  it('registers the explicit /skills/new route', () => {
+describe('legal routes', () => {
+  it('registers public privacy and terms pages', () => {
     const paths = flattenPaths((router as unknown as { routes: RouteNode[] }).routes);
 
-    expect(paths).toContain('skills/new');
+    expect(paths).toContain('privacy');
+    expect(paths).toContain('terms');
   });
 });

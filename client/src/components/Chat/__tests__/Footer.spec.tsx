@@ -1,5 +1,6 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import '@testing-library/jest-dom/extend-expect';
 import Footer from '../Footer';
 
@@ -41,16 +42,35 @@ describe('Footer', () => {
 
   test('keeps privacy policy and terms of service links in the same tab', () => {
     render(
-      <Footer
-        startupConfig={{
-          interface: {
-            privacyPolicy: { externalUrl: 'https://example.com/privacy' },
-            termsOfService: { externalUrl: 'https://example.com/terms' },
-          },
-        }}
-      />,
+      <MemoryRouter>
+        <Footer
+          startupConfig={{
+            interface: {
+              privacyPolicy: { externalUrl: 'https://example.com/privacy' },
+              termsOfService: { externalUrl: 'https://example.com/terms' },
+            },
+          }}
+        />
+      </MemoryRouter>,
     );
     expect(screen.getByRole('link', { name: 'Privacy policy' })).not.toHaveAttribute('target');
     expect(screen.getByRole('link', { name: 'Terms of service' })).not.toHaveAttribute('target');
+  });
+
+  test('links configured in-app policy pages without leaving the app', () => {
+    render(
+      <MemoryRouter>
+        <Footer
+          startupConfig={{
+            interface: {
+              privacyPolicy: { externalUrl: '/privacy' },
+              termsOfService: { externalUrl: '/terms' },
+            },
+          }}
+        />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('link', { name: 'Privacy policy' })).toHaveAttribute('href', '/privacy');
+    expect(screen.getByRole('link', { name: 'Terms of service' })).toHaveAttribute('href', '/terms');
   });
 });

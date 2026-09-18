@@ -1,25 +1,33 @@
 #!/usr/bin/env node
 /**
- * Tiny Automatic1111-compatible /sdapi/v1/txt2img proxy in front of Ollama
- * image generation (macOS experimental, 0.13+/0.34+).
+ * Automatic1111-compatible /sdapi/v1/txt2img proxy for LibreChat's
+ * stable-diffusion tool. Images are generated locally with MLX mflux
+ * (Ollama 0.34+ no longer runs image models).
  *
- * LibreChat's built-in `stable-diffusion` tool posts here. Ollama does not
- * expose that API itself, so this process translates the call.
- *
- *   OLLAMA_URL=http://127.0.0.1:11434
- *   OLLAMA_IMAGE_MODEL=x/flux2-klein:4b
+ *   MFLUX_BIN=mflux-generate-flux2
+ *   MFLUX_MODEL=flux2-klein-4b
+ *   MFLUX_QUANTIZE=8
+ *   MFLUX_STEPS=4
+ *   MFLUX_MAX_DIM=768
  *   SD_PROXY_PORT=7860
  */
 
 'use strict';
 
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 const http = require('http');
+const { spawn } = require('child_process');
 
-const OLLAMA_URL = (process.env.OLLAMA_URL || 'http://127.0.0.1:11434').replace(/\/$/, '');
-const MODEL = process.env.OLLAMA_IMAGE_MODEL || 'x/flux2-klein:4b';
 const PORT = Number(process.env.SD_PROXY_PORT || 7860);
 const HOST = process.env.SD_PROXY_HOST || '0.0.0.0';
-const GENERATE_TIMEOUT_MS = Number(process.env.OLLAMA_IMAGE_TIMEOUT_MS || 10 * 60 * 1000);
+const MFLUX_BIN = process.env.MFLUX_BIN || 'mflux-generate-flux2';
+const MFLUX_MODEL = process.env.MFLUX_MODEL || 'flux2-klein-4b';
+const MFLUX_QUANTIZE = Number(process.env.MFLUX_QUANTIZE || 8);
+const DEFAULT_STEPS = Number(process.env.MFLUX_STEPS || 4);
+const MAX_DIM = Number(process.env.MFLUX_MAX_DIM || 768);
+const GENERATE_TIMEOUT_MS = Number(process.env.MFLUX_TIMEOUT_MS || 20 * 60 * 1000);
 
 function json(res, status, body) {
   const payload = JSON.stringify(body);
@@ -50,139 +58,136 @@ function readBody(req) {
   });
 }
 
-function stripDataUrl(value) {
-  if (typeof value !== 'string') {
+function clampDim(value, fallback = 768) {
+  const n = Number.isFinite(value) && value > 0 ? Math.round(value) : fallback;
+  return Math.min(MAX_DIM, Math.max(256, n));
+}
+
+function resolveSteps(steps) {
+  if (!Number.isFinite(steps) || steps <= 0 || steps === 22) {
+    return DEFAULT_STEPS;
+  }
+  return Math.min(8, Math.max(1, Math.round(steps)));
+}
+
+function runMflux(args, cwd) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(MFLUX_BIN, args, {
+      cwd,
+      env: process.env,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    let stdout = '';
+    let stderr = '';
+    child.stdout.on('data', (chunk) => {
+      stdout += chunk;
+      process.stdout.write(chunk);
+    });
+    child.stderr.on('data', (chunk) => {
+      stderr += chunk;
+      process.stderr.write(chunk);
+    });
+    const timer = setTimeout(() => {
+      child.kill('SIGTERM');
+      reject(new Error(`mflux timed out after ${GENERATE_TIMEOUT_MS}ms`));
+    }, GENERATE_TIMEOUT_MS);
+    child.on('error', (error) => {
+      clearTimeout(timer);
+      reject(error);
+    });
+    child.on('close', (code) => {
+      clearTimeout(timer);
+      if (code !== 0) {
+        reject(new Error(`mflux exited ${code}: ${(stderr || stdout).slice(0, 2000)}`));
+        return;
+      }
+      resolve({ stdout, stderr });
+    });
+  });
+}
+
+function findOutputImage(dir, preferred) {
+  if (preferred && fs.existsSync(preferred)) {
+    return preferred;
+  }
+  const files = fs
+    .readdirSync(dir)
+    .filter((name) => /\.(png|jpg|jpeg|webp)$/i.test(name))
+    .map((name) => path.join(dir, name));
+  if (files.length === 0) {
     return '';
   }
-  const trimmed = value.trim();
-  const marker = 'base64,';
-  const index = trimmed.indexOf(marker);
-  return index >= 0 ? trimmed.slice(index + marker.length) : trimmed;
-}
-
-function collectImages(payload) {
-  const found = [];
-  const push = (value) => {
-    if (typeof value === 'string' && value.length > 32) {
-      found.push(stripDataUrl(value));
-    }
-  };
-
-  if (!payload || typeof payload !== 'object') {
-    return found;
-  }
-
-  if (Array.isArray(payload.images)) {
-    payload.images.forEach(push);
-  }
-
-  const message = payload.message;
-  if (message && Array.isArray(message.images)) {
-    message.images.forEach(push);
-  }
-
-  return found;
-}
-
-async function ollamaPost(pathname, body) {
-  const response = await fetch(`${OLLAMA_URL}${pathname}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(GENERATE_TIMEOUT_MS),
-  });
-  const text = await response.text();
-  let data = {};
-  try {
-    data = text ? JSON.parse(text) : {};
-  } catch {
-    data = { error: text };
-  }
-  if (!response.ok) {
-    const detail = data.error || data.message || text || response.statusText;
-    throw new Error(`Ollama ${pathname} ${response.status}: ${detail}`);
-  }
-  return data;
-}
-
-function buildPrompt(prompt, negativePrompt) {
-  const main = String(prompt || '').trim();
-  const negative = String(negativePrompt || '').trim();
-  if (!negative) {
-    return main;
-  }
-  return `${main}\n\nNegative prompt: ${negative}`;
+  files.sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs);
+  return files[0];
 }
 
 async function generateImage({ prompt, negative_prompt, width, height, steps, seed }) {
-  const fullPrompt = buildPrompt(prompt, negative_prompt);
-  const options = {};
-  if (Number.isFinite(width) && width > 0) {
-    options.width = Math.round(width);
-  }
-  if (Number.isFinite(height) && height > 0) {
-    options.height = Math.round(height);
-  }
-  if (Number.isFinite(steps) && steps > 0) {
-    options.num_predict = Math.round(steps);
-  }
-  if (Number.isFinite(seed)) {
-    options.seed = Math.round(seed);
+  const fullPrompt = String(prompt || '').trim();
+  if (!fullPrompt) {
+    throw new Error('Missing prompt');
   }
 
-  const generateBody = {
-    model: MODEL,
-    prompt: fullPrompt,
-    stream: false,
-    keep_alive: process.env.OLLAMA_IMAGE_KEEP_ALIVE || '2m',
-    options,
-  };
+  const w = clampDim(width);
+  const h = clampDim(height);
+  const s = resolveSteps(steps);
+  const outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'rakaai-mflux-'));
+  const outputPath = path.join(outDir, 'image.png');
+  const args = [
+    '--model',
+    MFLUX_MODEL,
+    '--prompt',
+    fullPrompt,
+    '--width',
+    String(w),
+    '--height',
+    String(h),
+    '--steps',
+    String(s),
+    '--quantize',
+    String(MFLUX_QUANTIZE),
+    '--output',
+    outputPath,
+  ];
+  if (Number.isFinite(seed) && seed >= 0) {
+    args.push('--seed', String(Math.round(seed)));
+  }
+  if (negative_prompt) {
+    console.warn('[mflux-sd-proxy] ignoring negative_prompt; FLUX.2 does not support it');
+  }
 
-  let payload;
   try {
-    payload = await ollamaPost('/api/generate', generateBody);
-  } catch (generateError) {
-    payload = await ollamaPost('/api/chat', {
-      model: MODEL,
-      stream: false,
-      keep_alive: generateBody.keep_alive,
-      options,
-      messages: [{ role: 'user', content: fullPrompt }],
-    }).catch((chatError) => {
-      throw new Error(`${generateError.message}; chat fallback: ${chatError.message}`);
-    });
+    await runMflux(args, outDir);
+    const imagePath = findOutputImage(outDir, outputPath);
+    if (!imagePath) {
+      throw new Error('mflux finished without writing an image');
+    }
+    return {
+      images: [fs.readFileSync(imagePath).toString('base64')],
+      info: JSON.stringify({
+        prompt: fullPrompt,
+        negative_prompt: '',
+        seed: seed ?? -1,
+        width: w,
+        height: h,
+        infotexts: [`${fullPrompt}\nmflux ${MFLUX_MODEL} q${MFLUX_QUANTIZE} ${s} steps`],
+        model: MFLUX_MODEL,
+      }),
+    };
+  } finally {
+    fs.rmSync(outDir, { recursive: true, force: true });
   }
-
-  const images = collectImages(payload);
-  if (images.length === 0) {
-    const preview = JSON.stringify(payload).slice(0, 400);
-    throw new Error(`Ollama returned no image data. Response preview: ${preview}`);
-  }
-
-  return {
-    images,
-    info: JSON.stringify({
-      prompt: fullPrompt,
-      negative_prompt: negative_prompt || '',
-      seed: seed ?? -1,
-      width: width || 1024,
-      height: height || 1024,
-      infotexts: [`${fullPrompt}\nOllama ${MODEL}`],
-      model: MODEL,
-    }),
-  };
 }
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
 
   if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/health')) {
-    json(res, 200, { status: 'ok', model: MODEL, ollama: OLLAMA_URL });
+    json(res, 200, { status: 'ok', backend: 'mflux', model: MFLUX_MODEL });
     return;
   }
 
   if (req.method === 'GET' && url.pathname === '/sdapi/v1/sd-models') {
-    json(res, 200, [{ title: MODEL, model_name: MODEL }]);
+    json(res, 200, [{ title: MFLUX_MODEL, model_name: MFLUX_MODEL }]);
     return;
   }
 
@@ -199,7 +204,7 @@ const server = http.createServer(async (req, res) => {
       });
       json(res, 200, result);
     } catch (error) {
-      console.error('[ollama-sd-proxy]', error.message);
+      console.error('[mflux-sd-proxy]', error.message);
       json(res, 500, { error: error.message });
     }
     return;
@@ -210,6 +215,6 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, HOST, () => {
   console.log(
-    `Ollama SD proxy listening on http://${HOST}:${PORT} → ${OLLAMA_URL} model ${MODEL}`,
+    `mflux SD proxy listening on http://${HOST}:${PORT} → ${MFLUX_BIN} ${MFLUX_MODEL} q${MFLUX_QUANTIZE}`,
   );
 });

@@ -33,6 +33,7 @@ import {
   hasModelSelection,
   buildDefaultConvo,
   requestChatFocus,
+  getAppTitle,
   renewNewConversationDraftToken,
   getNewConversationDraftId,
   getPendingDraftId,
@@ -286,10 +287,7 @@ const useNewConvo = (index = 0) => {
         };
 
         if (conversation.conversationId === Constants.NEW_CONVO && !modelsData) {
-          const appTitle = localStorage.getItem(LocalStorageKeys.APP_TITLE) ?? '';
-          if (appTitle) {
-            document.title = appTitle;
-          }
+          document.title = getAppTitle();
           const path = `/c/${Constants.NEW_CONVO}${getParams(conversation)}`;
           /** Honor disableFocus here too: the transient focus intent survives
            * follow-up navigations (unlike the old location.state), so e.g.

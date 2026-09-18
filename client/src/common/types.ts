@@ -684,6 +684,9 @@ declare global {
       /** Whether this deployment configured footer content of its own, so the
        *  composer reserves the footer bar's band on its first frame. */
       hasConfiguredFooter?: boolean;
+      /** Deployment brand the server stamped on the shell, so the tab title
+       *  does not wait on `/api/config`. */
+      appTitle?: string;
     };
   }
 }

@@ -44,6 +44,7 @@ const {
   loadToolApprovalHooks,
   maybeInjectQueryDevtoolsBootstrap,
   injectConfiguredFooterBootstrap,
+  injectAppTitle,
   preAuthTenantMiddleware,
   requestContextMiddleware,
   registerShutdownTask,
@@ -290,6 +291,7 @@ const startServer = async () => {
      request, before there is a caller whose overrides could be resolved, so the
      answer is the deployment's base configuration; `/api/config` resolves the
      caller's and the client prefers it. */
+  indexHTML = injectAppTitle(indexHTML, process.env.APP_TITLE);
   indexHTML = injectConfiguredFooterBootstrap(indexHTML, {
     customFooter: process.env.CUSTOM_FOOTER,
     interfaceConfig: appConfig?.interfaceConfig,

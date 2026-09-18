@@ -1,36 +1,29 @@
-import { TStartupConfig } from 'librechat-data-provider';
+import type { TStartupConfig } from 'librechat-data-provider';
+import { resolvePrivacyUrl, resolveTermsUrl } from '~/utils';
+import PolicyLink from '~/components/Legal/PolicyLink';
 import { useLocalize } from '~/hooks';
+
+const legalLinkClassName =
+  'text-sm text-accent-primary underline decoration-transparent transition-all duration-200 hover:text-accent-primary-hover hover:decoration-accent-primary-hover focus:text-accent-primary-hover focus:decoration-accent-primary-hover';
 
 function Footer({ startupConfig }: { startupConfig: TStartupConfig | null | undefined }) {
   const localize = useLocalize();
   if (!startupConfig) {
     return null;
   }
-  const privacyPolicy = startupConfig.interface?.privacyPolicy;
-  const termsOfService = startupConfig.interface?.termsOfService;
+  const privacyUrl = resolvePrivacyUrl(startupConfig.interface?.privacyPolicy?.externalUrl);
+  const termsUrl = resolveTermsUrl(startupConfig.interface?.termsOfService?.externalUrl);
 
-  const privacyPolicyRender = privacyPolicy?.externalUrl && (
-    <a
-      className="text-sm text-accent-primary underline decoration-transparent transition-all duration-200 hover:text-accent-primary-hover hover:decoration-accent-primary-hover focus:text-accent-primary-hover focus:decoration-accent-primary-hover"
-      href={privacyPolicy.externalUrl}
-      // Removed for WCAG compliance
-      // target={privacyPolicy.openNewTab ? '_blank' : undefined}
-      rel="noreferrer"
-    >
+  const privacyPolicyRender = (
+    <PolicyLink className={legalLinkClassName} href={privacyUrl}>
       {localize('com_ui_privacy_policy')}
-    </a>
+    </PolicyLink>
   );
 
-  const termsOfServiceRender = termsOfService?.externalUrl && (
-    <a
-      className="text-sm text-accent-primary underline decoration-transparent transition-all duration-200 hover:text-accent-primary-hover hover:decoration-accent-primary-hover focus:text-accent-primary-hover focus:decoration-accent-primary-hover"
-      href={termsOfService.externalUrl}
-      // Removed for WCAG compliance
-      // target={termsOfService.openNewTab ? '_blank' : undefined}
-      rel="noreferrer"
-    >
+  const termsOfServiceRender = (
+    <PolicyLink className={legalLinkClassName} href={termsUrl}>
       {localize('com_ui_terms_of_service')}
-    </a>
+    </PolicyLink>
   );
 
   return (

@@ -58,7 +58,7 @@ export default function useAppStartup({
 
   /** Set the app title */
   useEffect(() => {
-    const appTitle = startupConfig?.appTitle ?? '';
+    const appTitle = startupConfig?.appTitle ?? window.__LIBRECHAT_CONFIG__?.appTitle ?? '';
     if (!appTitle) {
       return;
     }

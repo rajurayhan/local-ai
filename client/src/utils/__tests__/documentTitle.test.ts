@@ -61,6 +61,14 @@ describe('document title', () => {
     expect(document.title).toBe('RakaAI');
   });
 
+  it('ignores a leftover LibreChat title from before the rebrand', () => {
+    localStorage.setItem(LocalStorageKeys.APP_TITLE, 'LibreChat');
+
+    setDocumentTitle('', true);
+
+    expect(document.title).toBe('RakaAI');
+  });
+
   it('uses the default app title when storage is unavailable', () => {
     jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
       throw new Error('Storage unavailable');

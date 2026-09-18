@@ -12,6 +12,22 @@
       content="RakaAI - A local chat application with support for multiple AI models"
     />
     <title>RakaAI</title>
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem('appTitle');
+          if (stored === 'LibreChat') {
+            localStorage.removeItem('appTitle');
+            stored = '';
+          }
+          if (stored) {
+            document.title = stored;
+          }
+        } catch (e) {
+          /* Branding should never affect application startup. */
+        }
+      })();
+    </script>
     <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16x16.png" />
     <link rel="apple-touch-icon" href="assets/apple-touch-icon-180x180.png" />

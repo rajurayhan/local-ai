@@ -3,6 +3,8 @@ import TagManager from 'react-gtm-module';
 import ReactMarkdown from 'react-markdown';
 import { Constants, hasConfiguredFooter } from 'librechat-data-provider';
 import type { TStartupConfig } from 'librechat-data-provider';
+import { resolvePrivacyUrl, resolveTermsUrl } from '~/utils';
+import PolicyLink from '~/components/Legal/PolicyLink';
 import { useGetStartupConfig } from '~/data-provider';
 import { useLocalize } from '~/hooks';
 
@@ -59,19 +61,22 @@ function Footer({ className, startupConfig, configuredOnly = false }: FooterProp
   const config = shouldFetchConfig ? fetchedConfig : startupConfig;
   const localize = useLocalize();
 
-  const privacyPolicy = config?.interface?.privacyPolicy;
-  const termsOfService = config?.interface?.termsOfService;
+  const privacyUrl = resolvePrivacyUrl(config?.interface?.privacyPolicy?.externalUrl);
+  const termsUrl = resolveTermsUrl(config?.interface?.termsOfService?.externalUrl);
+  const showPolicyLinks =
+    config?.interface?.privacyPolicy?.externalUrl != null ||
+    config?.interface?.termsOfService?.externalUrl != null;
 
-  const privacyPolicyRender = privacyPolicy?.externalUrl != null && (
-    <a className="text-text-muted underline" href={privacyPolicy.externalUrl} rel="noreferrer">
+  const privacyPolicyRender = showPolicyLinks && (
+    <PolicyLink className="text-text-muted underline" href={privacyUrl}>
       {localize('com_ui_privacy_policy')}
-    </a>
+    </PolicyLink>
   );
 
-  const termsOfServiceRender = termsOfService?.externalUrl != null && (
-    <a className="text-text-muted underline" href={termsOfService.externalUrl} rel="noreferrer">
+  const termsOfServiceRender = showPolicyLinks && (
+    <PolicyLink className="text-text-muted underline" href={termsUrl}>
       {localize('com_ui_terms_of_service')}
-    </a>
+    </PolicyLink>
   );
 
   const configuredFooter = typeof config?.customFooter === 'string' ? config.customFooter : null;

@@ -1,6 +1,7 @@
 import { useState, memo, useRef } from 'react';
 import { useSetRecoilState } from 'recoil';
 import * as Menu from '@ariakit/react/menu';
+import { useNavigate } from 'react-router-dom';
 import { GearIcon, DropdownMenuSeparator, Avatar } from '@librechat/client';
 import {
   Archive,
@@ -13,6 +14,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { ArchivedChatsModal } from '~/components/Nav/SettingsTabs/General/ArchivedChatsModal';
+import { isInAppHref, resolvePrivacyUrl, resolveTermsUrl } from '~/utils';
 import { useGetStartupConfig, useGetUserBalance } from '~/data-provider';
 import { useAuthContext } from '~/hooks/AuthContext';
 import { useLocalize } from '~/hooks';
@@ -26,14 +28,23 @@ function HelpSubmenu({
   onShowShortcuts,
 }: {
   helpAndFaqURL?: string;
-  termsOfServiceURL?: string;
-  privacyPolicyURL?: string;
+  termsOfServiceURL: string;
+  privacyPolicyURL: string;
   onShowShortcuts: () => void;
 }) {
   const localize = useLocalize();
+  const navigate = useNavigate();
   const hasHelpFaq = !!helpAndFaqURL && helpAndFaqURL !== '/';
   const hasTos = !!termsOfServiceURL;
   const hasPrivacy = !!privacyPolicyURL;
+
+  const openPolicy = (url: string) => {
+    if (isInAppHref(url)) {
+      navigate(url);
+      return;
+    }
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
   const showLegalDivider = (hasHelpFaq || true) && (hasTos || hasPrivacy);
 
   return (
@@ -69,7 +80,7 @@ function HelpSubmenu({
         {showLegalDivider && (hasTos || hasPrivacy) && <DropdownMenuSeparator />}
         {hasTos && (
           <Menu.MenuItem
-            onClick={() => window.open(termsOfServiceURL, '_blank', 'noopener,noreferrer')}
+            onClick={() => openPolicy(termsOfServiceURL)}
             className="select-item text-sm"
           >
             <Scale className="icon-md" aria-hidden="true" />
@@ -78,7 +89,7 @@ function HelpSubmenu({
         )}
         {hasPrivacy && (
           <Menu.MenuItem
-            onClick={() => window.open(privacyPolicyURL, '_blank', 'noopener,noreferrer')}
+            onClick={() => openPolicy(privacyPolicyURL)}
             className="select-item text-sm"
           >
             <ShieldCheck className="icon-md" aria-hidden="true" />
@@ -153,8 +164,10 @@ function AccountSettings({ collapsed = false }: { collapsed?: boolean }) {
         )}
         <HelpSubmenu
           helpAndFaqURL={startupConfig?.helpAndFaqURL}
-          termsOfServiceURL={startupConfig?.interface?.termsOfService?.externalUrl}
-          privacyPolicyURL={startupConfig?.interface?.privacyPolicy?.externalUrl}
+          termsOfServiceURL={resolveTermsUrl(startupConfig?.interface?.termsOfService?.externalUrl)}
+          privacyPolicyURL={resolvePrivacyUrl(
+            startupConfig?.interface?.privacyPolicy?.externalUrl,
+          )}
           onShowShortcuts={() => setShowShortcutsDialog(true)}
         />
         <Menu.MenuItem onClick={() => setShowArchived(true)} className="select-item text-sm">
