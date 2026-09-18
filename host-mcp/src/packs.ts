@@ -15,6 +15,16 @@ function withIdentity(pack: PackDraft): Pack {
   return { ...pack, ...packIdentity(pack.name) };
 }
 
+function slackClients(config: DeviceConfig, post: typeof postJson) {
+  const asUser = config.apps.slackUserToken
+    ? createSlackApi(config.apps.slackUserToken, post, config.apps.timeoutMs, config.apps.maxResponseBytes)
+    : undefined;
+  const directory = config.apps.slackToken
+    ? createSlackApi(config.apps.slackToken, post, config.apps.timeoutMs, config.apps.maxResponseBytes)
+    : asUser;
+  return { asUser, directory };
+}
+
 export function createPacks(config: DeviceConfig): Record<PackName, Pack> {
   return {
     files: withIdentity(createFilesPack(config)),
@@ -22,13 +32,7 @@ export function createPacks(config: DeviceConfig): Record<PackName, Pack> {
     browser: withIdentity(createBrowserPack(config, () => createBrowserSession(config.browser.userDataDir))),
     desktop: withIdentity(createDesktopPack(config, runCommand)),
     apps: withIdentity(
-      createAppsPack(
-        config,
-        postJson,
-        config.apps.slackToken
-          ? createSlackApi(config.apps.slackToken, postJson, config.apps.timeoutMs, config.apps.maxResponseBytes)
-          : undefined,
-      ),
+      createAppsPack(config, postJson, slackClients(config, postJson)),
     ),
   };
 }

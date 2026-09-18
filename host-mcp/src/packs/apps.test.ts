@@ -2,8 +2,32 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import { defaultConfig } from '../config.ts';
+import type { SlackApi } from '../slack.ts';
 import type { HttpPoster } from '../types.ts';
 import { createAppsPack } from './apps.ts';
+
+function fakeSlack(over: Partial<SlackApi> = {}): SlackApi {
+  return {
+    lookupByEmail: async () => ({
+      id: 'U1',
+      name: 'ada',
+      realName: 'Ada',
+      deleted: false,
+      bot: false,
+    }),
+    listUsers: async () => ({
+      users: [{ id: 'U1', name: 'ada', realName: 'Ada Lovelace', email: 'ada@example.com', deleted: false, bot: false }],
+    }),
+    searchUsers: async () => [
+      { id: 'U1', name: 'ada', realName: 'Ada Lovelace', email: 'ada@example.com', deleted: false, bot: false },
+    ],
+    listChannels: async () => ({ channels: [{ id: 'C1', name: 'general', private: false, member: true }] }),
+    searchChannels: async () => [{ id: 'C1', name: 'general', private: false, member: true }],
+    openIm: async () => 'D1',
+    postMessage: async (channel, text) => `ok ${channel} ${text}`,
+    ...over,
+  };
+}
 
 test('lists hooks and refuses unknown ids', async () => {
   const pack = createAppsPack(defaultConfig({ apps: { hooks: [], timeoutMs: 1000, maxResponseBytes: 100 } }), async () => {
@@ -55,7 +79,7 @@ test('posts only to a configured hook', async () => {
   assert.equal(calls[0]?.body, '{"hello":true}');
 });
 
-test('slack_send_message uses the injected Slack API and refuses when unconfigured', async () => {
+test('slack tools use the injected Slack API and refuse when the user token is missing', async () => {
   const missing = createAppsPack(
     defaultConfig({ apps: { hooks: [], timeoutMs: 1000, maxResponseBytes: 100 } }),
     async () => {
@@ -67,20 +91,28 @@ test('slack_send_message uses the injected Slack API and refuses when unconfigur
   const unset = await send.handler({ to: '#general', text: 'hi' });
   assert.equal(unset.isError, true);
 
+  const slack = fakeSlack();
   const pack = createAppsPack(
-    defaultConfig({ apps: { hooks: [], slackToken: 'xoxb-test', timeoutMs: 1000, maxResponseBytes: 100 } }),
+    defaultConfig({
+      apps: { hooks: [], slackUserToken: 'xoxp-test', timeoutMs: 1000, maxResponseBytes: 100 },
+    }),
     async () => {
       throw new Error('should not post');
     },
-    {
-      lookupByEmail: async () => ({ id: 'U1', name: 'Ada' }),
-      openIm: async () => 'D1',
-      postMessage: async (channel, text) => `ok ${channel} ${text}`,
-    },
+    { asUser: slack, directory: slack },
   );
   const wired = pack.tools.find((tool) => tool.name === 'slack_send_message');
-  assert.ok(wired);
+  const users = pack.tools.find((tool) => tool.name === 'slack_list_users');
+  const search = pack.tools.find((tool) => tool.name === 'slack_search_users');
+  const channels = pack.tools.find((tool) => tool.name === 'slack_list_channels');
+  assert.ok(wired && users && search && channels);
   const sent = await wired.handler({ to: '#general', text: 'shipped' });
   assert.equal(sent.isError, undefined);
   assert.match(sent.content[0].type === 'text' ? sent.content[0].text : '', /ok general shipped/);
+  const listed = await users.handler({});
+  assert.match(listed.content[0].type === 'text' ? listed.content[0].text : '', /Ada Lovelace/);
+  const found = await search.handler({ query: 'ada' });
+  assert.match(found.content[0].type === 'text' ? found.content[0].text : '', /U1/);
+  const channelList = await channels.handler({ query: 'gen' });
+  assert.match(channelList.content[0].type === 'text' ? channelList.content[0].text : '', /#general/);
 });

@@ -47,6 +47,9 @@ if "DEVICE_MCP_TOKEN=" not in text:
 if "SLACK_BOT_TOKEN=" not in text:
     text = text.rstrip() + "\nSLACK_BOT_TOKEN=\n"
     print("Added empty SLACK_BOT_TOKEN to .env")
+if "SLACK_USER_TOKEN=" not in text:
+    text = text.rstrip() + "\nSLACK_USER_TOKEN=\n"
+    print("Added empty SLACK_USER_TOKEN to .env")
 
 for line in text.splitlines():
     if line.startswith("DEVICE_MCP_TOKEN=") and len(line.split("=", 1)[1].strip()) == 0:
@@ -78,6 +81,16 @@ from pathlib import Path
 import sys
 for line in Path(sys.argv[1]).read_text().splitlines():
     if line.startswith("SLACK_BOT_TOKEN="):
+        print(line.split("=", 1)[1].strip().strip('"').strip("'"))
+        break
+PY
+)"
+
+SLACK_USER_TOKEN="$(python3 - "$ROOT_DIR/.env" <<'PY'
+from pathlib import Path
+import sys
+for line in Path(sys.argv[1]).read_text().splitlines():
+    if line.startswith("SLACK_USER_TOKEN="):
         print(line.split("=", 1)[1].strip().strip('"').strip("'"))
         break
 PY
@@ -121,7 +134,7 @@ fi
 echo "Starting device MCP on port $PORT (files root $ROOT_FOLDER)..."
 (
   cd "$HOST_MCP_DIR"
-  nohup env DEVICE_MCP_TOKEN="$TOKEN" DEVICE_MCP_PORT="$PORT" SLACK_BOT_TOKEN="$SLACK_TOKEN" \
+  nohup env DEVICE_MCP_TOKEN="$TOKEN" DEVICE_MCP_PORT="$PORT" SLACK_BOT_TOKEN="$SLACK_TOKEN" SLACK_USER_TOKEN="$SLACK_USER_TOKEN" \
     "$HOST_MCP_DIR/node_modules/.bin/tsx" src/server.ts \
     </dev/null >"$LOG_FILE" 2>&1 &
   echo $! >"$PID_FILE"

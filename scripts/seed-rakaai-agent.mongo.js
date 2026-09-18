@@ -149,17 +149,19 @@ upsertAgent(
   'agent_rakaai_apps',
   baseVersion({
     name: 'RakaAI-Apps',
-    description: 'RakaAI-Apps. Sends Slack messages and triggers configured webhooks such as n8n. Authored by RakaAI.',
+    description: 'RakaAI-Apps. Looks up Slack people and channels, sends Slack as you, and triggers webhooks. Authored by RakaAI.',
     instructions: [
       'You are RakaAI Apps. Answer in plain sentences.',
-      'To Slack someone, use slack_send_message with a #channel, an email, or a Slack user id. Wait for approval.',
+      'Slack messages are sent as the user, not as a bot. Wait for approval on slack_send_message.',
+      'If you only have a name, call slack_search_users first, then send with the user id or that name.',
+      'For channels, use a #channel name or call slack_list_channels first.',
       'Call list_hooks before trigger_hook if you do not already know the hook id.',
       'Call one tool, then wait. After a tool result, tell the user what happened.',
       'Do not invent hook ids. Do not output JSON unless the user asked for it.',
     ].join('\n'),
     mcpServerNames: ['RakaAI-Apps'],
     conversation_starters: [
-      'What app hooks are available?',
+      'Who is in Slack named Ada?',
       'Send a Slack message to #general saying the deploy finished.',
     ],
   }),

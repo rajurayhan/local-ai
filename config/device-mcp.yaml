@@ -46,7 +46,7 @@ mcpServers:
       key: '${DEVICE_MCP_TOKEN}'
   RakaAI-Apps:
     title: RakaAI-Apps
-    description: 'RakaAI-Apps: Send Slack messages and trigger configured app webhooks such as n8n. Authored by RakaAI <raju@sulus.ai>.'
+    description: 'RakaAI-Apps: Look up Slack people and channels, send Slack as you, and trigger app webhooks. Authored by RakaAI <raju@sulus.ai>.'
     type: streamable-http
     url: http://host.docker.internal:8765/mcp/apps
     timeout: 60000

@@ -79,6 +79,7 @@ export type DeviceConfig = {
   apps: {
     hooks: AppHook[];
     slackToken: string;
+    slackUserToken: string;
     timeoutMs: number;
     maxResponseBytes: number;
   };

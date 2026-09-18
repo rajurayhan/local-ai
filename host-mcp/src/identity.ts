@@ -18,7 +18,7 @@ const SUMMARIES: Record<PackName, string> = {
   shell: 'Run one allowlisted program in the allowed folder.',
   browser: 'Open and read web pages in an isolated browser.',
   desktop: 'Open Mac apps, click menus, press shortcuts, type, and capture the screen.',
-  apps: 'Trigger configured app webhooks and send Slack messages.',
+  apps: 'Look up Slack people and channels, send Slack messages as you, and trigger configured app webhooks.',
 };
 
 export function packIdentity(name: PackName): {

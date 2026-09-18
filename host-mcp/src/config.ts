@@ -68,6 +68,7 @@ export function defaultConfig(overrides: ConfigOverrides = {}): DeviceConfig {
     apps: {
       hooks: overrides.apps?.hooks ?? [],
       slackToken: process.env.SLACK_BOT_TOKEN || overrides.apps?.slackToken || '',
+      slackUserToken: process.env.SLACK_USER_TOKEN || overrides.apps?.slackUserToken || '',
       timeoutMs: overrides.apps?.timeoutMs ?? 15_000,
       maxResponseBytes: overrides.apps?.maxResponseBytes ?? 32 * 1024,
     },

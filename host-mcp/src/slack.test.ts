@@ -5,6 +5,23 @@ import type { HttpPoster } from './types.ts';
 import type { SlackApi } from './slack.ts';
 import { classifySlackTo, createSlackApi, sendSlackMessage } from './slack.ts';
 
+function fakeSlack(over: Partial<SlackApi> = {}): SlackApi {
+  return {
+    lookupByEmail: async () => {
+      throw new Error('should not lookup');
+    },
+    listUsers: async () => ({ users: [] }),
+    searchUsers: async () => [],
+    listChannels: async () => ({ channels: [] }),
+    searchChannels: async () => [],
+    openIm: async () => {
+      throw new Error('should not open');
+    },
+    postMessage: async (channel, text) => `Sent as you to ${channel}:${text}`,
+    ...over,
+  };
+}
+
 test('classifies Slack destinations', () => {
   assert.deepEqual(classifySlackTo('#general'), { kind: 'channel', value: 'general' });
   assert.deepEqual(classifySlackTo('U012ABC'), { kind: 'user', value: 'U012ABC' });
@@ -14,33 +31,83 @@ test('classifies Slack destinations', () => {
 
 test('sends to a channel without opening a DM', async () => {
   const calls: string[] = [];
-  const slack: SlackApi = {
-    lookupByEmail: async () => {
-      throw new Error('should not lookup');
-    },
-    openIm: async () => {
-      throw new Error('should not open');
-    },
-    postMessage: async (channel, text) => {
-      calls.push(`${channel}:${text}`);
-      return `Sent to ${channel}`;
-    },
-  };
-
-  const result = await sendSlackMessage(slack, '#alerts', 'hello');
-  assert.equal(result, 'Sent to alerts');
+  const result = await sendSlackMessage(
+    fakeSlack({
+      postMessage: async (channel, text) => {
+        calls.push(`${channel}:${text}`);
+        return `Sent as you to ${channel}`;
+      },
+    }),
+    '#alerts',
+    'hello',
+  );
+  assert.equal(result, 'Sent as you to alerts');
   assert.deepEqual(calls, ['alerts:hello']);
 });
 
+test('resolves a unique person name before sending', async () => {
+  const result = await sendSlackMessage(
+    fakeSlack({
+      searchUsers: async () => [
+        { id: 'U9', name: 'ada', realName: 'Ada Lovelace', deleted: false, bot: false },
+      ],
+      openIm: async (userId) => `D-${userId}`,
+      postMessage: async (channel, text) => `${channel}:${text}`,
+    }),
+    'Ada Lovelace',
+    'ping',
+  );
+  assert.equal(result, 'D-U9:ping');
+});
+
 test('looks up email then opens a DM', async () => {
-  const slack: SlackApi = {
-    lookupByEmail: async (email) => ({ id: 'U9', name: email }),
-    openIm: async (userId) => `D-${userId}`,
-    postMessage: async (channel, text) => `${channel}:${text}`,
+  const result = await sendSlackMessage(
+    fakeSlack({
+      lookupByEmail: async (email) => ({
+        id: 'U9',
+        name: email,
+        realName: email,
+        email,
+        deleted: false,
+        bot: false,
+      }),
+      openIm: async (userId) => `D-${userId}`,
+      postMessage: async (channel, text) => `${channel}:${text}`,
+    }),
+    'ada@example.com',
+    'ping',
+  );
+  assert.equal(result, 'D-U9:ping');
+});
+
+test('createSlackApi lists and searches people through HTTP', async () => {
+  const post: HttpPoster = async (url) => {
+    if (url.includes('users.list')) {
+      return {
+        status: 200,
+        body: JSON.stringify({
+          ok: true,
+          members: [
+            {
+              id: 'U2',
+              name: 'ada',
+              real_name: 'Ada Lovelace',
+              profile: { email: 'ada@example.com', display_name: 'Ada' },
+            },
+            { id: 'B1', name: 'bot', is_bot: true },
+          ],
+        }),
+      };
+    }
+    return { status: 200, body: JSON.stringify({ ok: false, error: 'unexpected' }) };
   };
 
-  const result = await sendSlackMessage(slack, 'ada@example.com', 'ping');
-  assert.equal(result, 'D-U9:ping');
+  const slack = createSlackApi('xoxp-test', post, 1000, 4000);
+  const listed = await slack.listUsers();
+  assert.equal(listed.users.length, 1);
+  assert.equal(listed.users[0]?.id, 'U2');
+  const found = await slack.searchUsers('ada');
+  assert.equal(found[0]?.email, 'ada@example.com');
 });
 
 test('createSlackApi looks up email then posts through HTTP', async () => {
@@ -48,7 +115,10 @@ test('createSlackApi looks up email then posts through HTTP', async () => {
   const post: HttpPoster = async (url, options) => {
     calls.push({ url, method: options.method, body: options.body });
     if (url.includes('users.lookupByEmail')) {
-      return { status: 200, body: JSON.stringify({ ok: true, user: { id: 'U2', name: 'ada' } }) };
+      return {
+        status: 200,
+        body: JSON.stringify({ ok: true, user: { id: 'U2', name: 'ada', real_name: 'Ada' } }),
+      };
     }
     if (url.includes('conversations.open')) {
       return { status: 200, body: JSON.stringify({ ok: true, channel: { id: 'D2' } }) };
@@ -56,9 +126,9 @@ test('createSlackApi looks up email then posts through HTTP', async () => {
     return { status: 200, body: JSON.stringify({ ok: true, ts: '1.2' }) };
   };
 
-  const slack = createSlackApi('xoxb-test', post, 1000, 1000);
+  const slack = createSlackApi('xoxp-test', post, 1000, 1000);
   const result = await sendSlackMessage(slack, 'ada@example.com', 'hello');
-  assert.equal(result, 'Sent to D2 (1.2)');
+  assert.equal(result, 'Sent as you to D2 (1.2)');
   assert.equal(calls[0]?.method, 'GET');
   assert.match(calls[0]?.url ?? '', /users\.lookupByEmail\?email=ada%40example.com/);
   assert.equal(calls[1]?.method, 'POST');

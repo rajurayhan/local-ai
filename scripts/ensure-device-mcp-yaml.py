@@ -36,6 +36,17 @@ if "title: RakaAI-Files" not in text:
         text = text.replace(needle, snippet.rstrip() + "\n\n" + needle, 1)
         changed = True
 
+if "mcp:RakaAI-Apps:slack_list_users" not in text and "mcp:RakaAI-Apps:list_hooks" in text:
+    text = text.replace(
+        "        - 'mcp:RakaAI-Apps:list_hooks'\n",
+        "        - 'mcp:RakaAI-Apps:list_hooks'\n"
+        "        - 'mcp:RakaAI-Apps:slack_list_users'\n"
+        "        - 'mcp:RakaAI-Apps:slack_search_users'\n"
+        "        - 'mcp:RakaAI-Apps:slack_list_channels'\n",
+        1,
+    )
+    changed = True
+
 if "mcp:RakaAI-Apps:slack_send_message" not in text and "mcp:RakaAI-Apps:trigger_hook" in text:
     text = text.replace(
         "        - 'mcp:RakaAI-Apps:trigger_hook'\n",
@@ -73,6 +84,9 @@ if "\n    toolApproval:\n" not in text:
         "        - 'mcp:RakaAI-Files:list_directory'\n"
         "        - 'mcp:RakaAI-Files:read_file'\n"
         "        - 'mcp:RakaAI-Apps:list_hooks'\n"
+        "        - 'mcp:RakaAI-Apps:slack_list_users'\n"
+        "        - 'mcp:RakaAI-Apps:slack_search_users'\n"
+        "        - 'mcp:RakaAI-Apps:slack_list_channels'\n"
         "      ask:\n"
         "        - 'mcp:RakaAI-Files:write_file'\n"
         "        - 'mcp:RakaAI-Shell:*'\n"

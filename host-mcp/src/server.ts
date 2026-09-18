@@ -114,7 +114,8 @@ export function createServer(config: DeviceConfig): http.Server {
             ok: true,
             author: PACK_AUTHOR,
             packs: PACK_NAMES.map((name) => packs[name].shareName),
-            slack: config.apps.slackToken.length > 0,
+            slack: config.apps.slackUserToken.length > 0,
+            slackBot: config.apps.slackToken.length > 0,
           }),
         );
         return;
