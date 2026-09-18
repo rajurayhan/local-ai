@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
-# Start Ollama and the LibreChat Docker stack together.
+# Start Ollama and the RakaAI Docker stack together.
 # Usage: npm run start:ollama
 # Optional: OLLAMA_MODEL=llama3.1:8b npm run start:ollama
+#
+# Image generation is a separate process (does not pull while another ollama
+# pull is running):
+#   npm run start:image-gen
+# Then in Agents, enable the Stable Diffusion tool.
 
 set -euo pipefail
 
@@ -81,6 +86,27 @@ ensure_env() {
     cp "$ROOT_DIR/.env.example" "$ROOT_DIR/.env"
     echo "Created .env from .env.example"
   fi
+
+  python3 - "$ROOT_DIR/.env" <<'PY'
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+text = path.read_text()
+changed = False
+if "APP_TITLE=" not in text:
+    text += "\nAPP_TITLE=RakaAI\n"
+    changed = True
+elif "APP_TITLE=LibreChat" in text:
+    text = text.replace("APP_TITLE=LibreChat", "APP_TITLE=RakaAI", 1)
+    changed = True
+if "SD_WEBUI_URL=" not in text.splitlines() and "SD_WEBUI_URL=" not in text:
+    text += "\nSD_WEBUI_URL=http://host.docker.internal:7860\n"
+    changed = True
+if changed:
+    path.write_text(text)
+    print("Set APP_TITLE=RakaAI in .env")
+PY
 }
 
 ensure_override() {
@@ -97,7 +123,7 @@ services:
         source: ./librechat.yaml
         target: /app/librechat.yaml
 EOF
-  echo "Wrote docker-compose.override.yaml so LibreChat loads librechat.yaml."
+  echo "Wrote docker-compose.override.yaml so RakaAI loads librechat.yaml."
 }
 
 ensure_yaml() {
@@ -135,34 +161,59 @@ if "host.docker.internal:11434" not in text:
         "  allowedAddresses:\n"
         "    - 'host.docker.internal:11434'\n"
         "    - '127.0.0.1:11434'\n"
+        "    - 'host.docker.internal:7860'\n"
+        "    - '127.0.0.1:7860'\n"
     )
     text = text.replace(endpoints, allow, 1)
+    changed = True
+elif "host.docker.internal:7860" not in text and "allowedAddresses:" in text:
+    needle = "    - '127.0.0.1:11434'\n"
+    extra = (
+        "    - '127.0.0.1:11434'\n"
+        "    - 'host.docker.internal:7860'\n"
+        "    - '127.0.0.1:7860'\n"
+    )
+    if needle in text:
+        text = text.replace(needle, extra, 1)
+        changed = True
+
+if "Welcome to LibreChat!" in text:
+    text = text.replace(
+        "Welcome to LibreChat! Enjoy your experience.",
+        "Welcome to RakaAI! Enjoy your experience.",
+        1,
+    )
     changed = True
 
 if changed:
     yaml_path.write_text(text)
-    print(f"Added the Ollama endpoint ({model}) to librechat.yaml")
+    print(f"Updated librechat.yaml for Ollama ({model}) and RakaAI")
 PY
 }
 
 wait_for_app() {
   for _ in $(seq 1 60); do
     if curl -sf "$APP_URL/health" >/dev/null 2>&1; then
-      echo "LibreChat is ready at $APP_URL"
+      echo "RakaAI is ready at $APP_URL"
       echo "Choose endpoint Ollama and model $OLLAMA_MODEL in a new chat."
+      echo "Image generation: npm run start:image-gen  (then add the Stable Diffusion tool on an Agent)."
       return
     fi
     sleep 2
   done
 
-  echo "LibreChat started but /health is not ready yet. Try $APP_URL in a moment."
+  echo "RakaAI started but /health is not ready yet. Try $APP_URL in a moment."
 }
 
 start_ollama
-ensure_model
+if pgrep -f 'ollama pull' >/dev/null 2>&1 && ! ollama list 2>/dev/null | awk 'NR > 1 { print $1 }' | grep -qx "$OLLAMA_MODEL"; then
+  echo "An Ollama pull is already running; not starting another. Using whatever models are already local."
+else
+  ensure_model
+fi
 ensure_env
 ensure_override
 ensure_yaml
-echo "Starting LibreChat..."
+echo "Starting RakaAI..."
 compose up -d
 wait_for_app

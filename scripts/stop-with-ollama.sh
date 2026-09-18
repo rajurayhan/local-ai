@@ -15,4 +15,4 @@ else
   exit 1
 fi
 
-echo "LibreChat is stopped. Ollama is still running (brew services stop ollama to shut it down)."
+echo "RakaAI is stopped. Ollama is still running (brew services stop ollama to shut it down)."
