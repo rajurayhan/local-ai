@@ -62,7 +62,6 @@ import type { TextContentFragment } from '../protection/types';
 import type { CheckAccessParams } from '../middleware/access';
 import type { MCPToolAlias } from '~/tools/classification';
 import type { AgentExecutionContext } from './runtime';
-import { extractLatestUserText, gateImageGenerationTools } from '~/tools/imageRequest';
 import {
   injectSkillCatalog,
   resolveSkillCatalog,
@@ -109,6 +108,8 @@ import {
 import { extractAgentContent, extractSkillContent } from '../protection/adapters/submissions';
 import { createConfiguredContentInspector, inspectContent } from '../protection/runtime';
 import { assertAgentAttachmentLimits, isModelBoundAttachmentFile } from './attachments';
+import { extractLatestUserText, gateImageGenerationTools } from '~/tools/imageRequest';
+import { CREATE_ARTIFACT_TOOL_HINT, withCreateArtifactTool } from '~/artifacts/create';
 import { resolveAttachedWorkspaceCommandTimeoutMax } from '~/code/command';
 import { assertModelBoundContent } from '../middleware/modelBoundContent';
 import { isImplicitStatefulCodeRouteAvailable } from '../code/config';
@@ -123,7 +124,6 @@ import { hasActiveFileFieldPolicy } from '~/protection';
 import { PARTIAL_RESOLVED_CONVERSATION } from './guard';
 import { applyBackgroundToolCalls } from './background';
 import { applyTurnDelivery } from './files/delivery';
-import { CREATE_ARTIFACT_TOOL_HINT, withCreateArtifactTool } from '~/artifacts/create';
 import { generateArtifactsPrompt } from '~/prompts';
 import { getProviderConfig } from '~/endpoints';
 import { primeResources } from './resources';

@@ -34,6 +34,7 @@ const {
   getToolInputValidationDetails,
   captureSubagentIdentity,
   collectToolCallIds,
+  collectArtifactImageParts,
 } = require('@librechat/api');
 const { processFileCitations } = require('~/server/services/Files/Citations');
 const { processCodeOutput, runPreviewFinalize } = require('~/server/services/Files/Code/process');
@@ -1099,23 +1100,14 @@ function createToolEndCallback({ req, res, artifactPromises, streamId = null, jo
       );
     }
 
-    if (output.artifact.content) {
-      /** @type {FormattedContent[]} */
-      const content = output.artifact.content;
-      for (let i = 0; i < content.length; i++) {
-        const part = content[i];
-        if (!part) {
-          continue;
-        }
-        if (part.type !== 'image_url') {
-          continue;
-        }
-        const { url } = part.image_url;
+    const imageParts = collectArtifactImageParts(output.artifact);
+    if (imageParts.length > 0) {
+      for (const part of imageParts) {
         artifactPromises.push(
           (async () => {
             const filename = `${output.name}_img_${nanoid()}`;
-            const file_id = output.artifact.file_ids?.[i];
-            const file = await saveBase64Image(url, {
+            const file_id = part.fileId;
+            const file = await saveBase64Image(part.url, {
               req,
               file_id,
               filename,
@@ -1476,23 +1468,14 @@ function createResponsesToolEndCallback({ req, res, tracker, artifactPromises })
       );
     }
 
-    if (output.artifact.content) {
-      /** @type {FormattedContent[]} */
-      const content = output.artifact.content;
-      for (let i = 0; i < content.length; i++) {
-        const part = content[i];
-        if (!part) {
-          continue;
-        }
-        if (part.type !== 'image_url') {
-          continue;
-        }
-        const { url } = part.image_url;
+    const imageParts = collectArtifactImageParts(output.artifact);
+    if (imageParts.length > 0) {
+      for (const part of imageParts) {
         artifactPromises.push(
           (async () => {
             const filename = `${output.name}_img_${nanoid()}`;
-            const file_id = output.artifact.file_ids?.[i];
-            const file = await saveBase64Image(url, {
+            const file_id = part.fileId;
+            const file = await saveBase64Image(part.url, {
               req,
               file_id,
               filename,

@@ -1,5 +1,10 @@
 import type * as t from '../types';
-import { formatToolContent, DEFAULT_MCP_IMAGE_DATA_MAX_BYTES } from '../parsers';
+import {
+  formatToolContent,
+  collectArtifactImageParts,
+  shouldForwardMcpImagesToModel,
+  DEFAULT_MCP_IMAGE_DATA_MAX_BYTES,
+} from '../parsers';
 
 describe('formatToolContent', () => {
   describe('unrecognized providers', () => {
@@ -89,6 +94,31 @@ describe('formatToolContent', () => {
                 image_url: { url: 'data:image/png;base64,base64data' },
               },
             ],
+          });
+        });
+
+        it('should keep images as UI-only artifacts when the model cannot consume them', () => {
+          const result: t.MCPToolCallResponse = {
+            content: [
+              { type: 'text', text: 'Before image' },
+              { type: 'image', data: 'base64data', mimeType: 'image/png' },
+              { type: 'text', text: 'After image' },
+            ],
+          };
+
+          const [content, artifacts] = formatToolContent(result, provider, {
+            includeImagesInModel: false,
+          });
+          expect(content).toBe('Before image\n\nAfter image');
+          expect(artifacts).toEqual({
+            ui_images: {
+              content: [
+                {
+                  type: 'image_url',
+                  image_url: { url: 'data:image/png;base64,base64data' },
+                },
+              ],
+            },
           });
         });
 
@@ -866,5 +896,45 @@ describe('formatToolContent', () => {
         ].join('\n'),
       );
     });
+  });
+});
+
+describe('shouldForwardMcpImagesToModel', () => {
+  it('treats a missing model as text-only', () => {
+    expect(shouldForwardMcpImagesToModel()).toBe(false);
+    expect(shouldForwardMcpImagesToModel({})).toBe(false);
+  });
+
+  it('keeps screenshots off text-only Ollama models', () => {
+    expect(shouldForwardMcpImagesToModel({ model: 'llama3.1:8b' })).toBe(false);
+  });
+
+  it('forwards images to known vision models', () => {
+    expect(shouldForwardMcpImagesToModel({ model: 'gpt-4o' })).toBe(true);
+    expect(shouldForwardMcpImagesToModel({ endpointOption: { model: 'llama3.2-vision' } })).toBe(
+      true,
+    );
+  });
+});
+
+describe('collectArtifactImageParts', () => {
+  it('collects model-bound and UI-only image URLs', () => {
+    expect(
+      collectArtifactImageParts({
+        content: [{ type: 'image_url', image_url: { url: 'data:image/png;base64,aaa' } }],
+        ui_images: {
+          content: [{ type: 'image_url', image_url: { url: 'data:image/png;base64,bbb' } }],
+        },
+        file_ids: ['file-a'],
+      }),
+    ).toEqual([
+      { url: 'data:image/png;base64,aaa', fileId: 'file-a' },
+      { url: 'data:image/png;base64,bbb', fileId: 'file-a' },
+    ]);
+  });
+
+  it('returns nothing when the artifact has no images', () => {
+    expect(collectArtifactImageParts(undefined)).toEqual([]);
+    expect(collectArtifactImageParts({ content: [{ type: 'text', text: 'hi' }] })).toEqual([]);
   });
 });

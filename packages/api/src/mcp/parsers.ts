@@ -1,7 +1,67 @@
 import crypto from 'node:crypto';
-import { Tools } from 'librechat-data-provider';
+import { Tools, validateVisionModel } from 'librechat-data-provider';
 import type { UIResource } from 'librechat-data-provider';
 import type * as t from './types';
+
+export type FormatToolContentOptions = {
+  /**
+   * When false, images stay UI attachments (`ui_images`) and are not folded
+   * into the next model request. Defaults to true so existing callers keep
+   * today's vision-model merge.
+   */
+  includeImagesInModel?: boolean;
+};
+
+export type ArtifactImagePart = {
+  url: string;
+  fileId?: string;
+};
+
+/**
+ * True when the turn's model can consume `image_url` parts. Unknown or
+ * empty model names are treated as text-only so Ollama/local 400s stay off.
+ */
+export function shouldForwardMcpImagesToModel(request?: {
+  model?: string | null;
+  endpointOption?: { model?: string | null };
+}): boolean {
+  const model = request?.model ?? request?.endpointOption?.model ?? '';
+  return validateVisionModel({ model });
+}
+
+function collectImageUrlParts(
+  content: t.FormattedContent[] | undefined,
+  fileIds?: string[],
+): ArtifactImagePart[] {
+  if (!content?.length) {
+    return [];
+  }
+
+  const parts: ArtifactImagePart[] = [];
+  for (let i = 0; i < content.length; i++) {
+    const part = content[i];
+    if (part?.type !== 'image_url') {
+      continue;
+    }
+    const url = part.image_url?.url;
+    if (typeof url !== 'string' || url.length === 0) {
+      continue;
+    }
+    parts.push({ url, fileId: fileIds?.[i] });
+  }
+  return parts;
+}
+
+/** Image URLs from model-bound `content` and UI-only `ui_images`. */
+export function collectArtifactImageParts(artifact: t.Artifacts): ArtifactImagePart[] {
+  if (!artifact) {
+    return [];
+  }
+  return [
+    ...collectImageUrlParts(artifact.content, artifact.file_ids),
+    ...collectImageUrlParts(artifact.ui_images?.content, artifact.file_ids),
+  ];
+}
 
 export const DEFAULT_MCP_IMAGE_DATA_MAX_BYTES: number = 10 * 1024 * 1024;
 
@@ -217,7 +277,9 @@ function parseAsString(result: t.MCPToolCallResponse): string {
 /**
  * Converts MCPToolCallResponse content into a plain-text string plus optional artifacts
  * (images, UI resources). All providers receive string content; images are separated into
- * artifacts and merged back by the agents package via formatArtifactPayload / formatAnthropicArtifactContent.
+ * artifacts. The agents package folds `artifact.content` back into the model payload
+ * via formatArtifactPayload / formatAnthropicArtifactContent. `ui_images` is saved as
+ * a viewable attachment and is never merged into that request.
  *
  * @param provider - Used only to distinguish recognized vs. unrecognized providers.
  * All recognized providers currently produce identical string output;
@@ -226,6 +288,7 @@ function parseAsString(result: t.MCPToolCallResponse): string {
 export function formatToolContent(
   result: t.MCPToolCallResponse,
   provider: t.Provider,
+  options?: FormatToolContentOptions,
 ): t.FormattedContentResult {
   if (!RECOGNIZED_PROVIDERS.has(provider)) {
     return [parseAsString(result), undefined];
@@ -343,7 +406,10 @@ UI Resource Markers Available:
 
   let artifacts: t.Artifacts = undefined;
   if (imageUrls.length > 0) {
-    artifacts = { content: imageUrls };
+    artifacts =
+      options?.includeImagesInModel === false
+        ? { ui_images: { content: imageUrls } }
+        : { content: imageUrls };
   }
 
   if (uiResources.length > 0) {

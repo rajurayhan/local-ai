@@ -152,6 +152,10 @@ export type FileSearchSource = {
 export type Artifacts =
   | {
       content?: FormattedContent[];
+      /** Images shown in the UI but not folded into the model payload. */
+      ui_images?: {
+        content: FormattedContent[];
+      };
       [Tools.ui_resources]?: {
         data: UIResource[];
       };

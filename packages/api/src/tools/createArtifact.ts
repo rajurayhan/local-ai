@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { Tools } from 'librechat-data-provider';
 import { tool } from '@librechat/agents/langchain/tools';
 import type { DynamicStructuredTool } from '@librechat/agents/langchain/tools';
+import type { CreateArtifactInput } from '~/artifacts/create';
 import {
   CREATE_ARTIFACT_CONTENT_MAX,
   CREATE_ARTIFACT_TITLE_MAX,
@@ -15,7 +16,7 @@ export const CREATE_ARTIFACT_TOOL_DESCRIPTION: string = [
   `type must be one of: ${CREATE_ARTIFACT_TYPES.join(', ')}.`,
 ].join(' ');
 
-const createArtifactToolSchema = z.object({
+const createArtifactToolSchema: z.ZodType<CreateArtifactInput> = z.object({
   title: z
     .string()
     .min(1)
@@ -34,31 +35,41 @@ const createArtifactToolSchema = z.object({
     .describe('Stable kebab-case id. Reuse it to update the same artifact.'),
 });
 
-export const CreateArtifactToolDefinition = {
+type CreateArtifactToolDefinition = {
+  name: typeof Tools.create_artifact;
+  description: string;
+  schema: {
+    type: 'object';
+    properties: Record<string, unknown>;
+    required: string[];
+  };
+};
+
+export const CreateArtifactToolDefinition: CreateArtifactToolDefinition = {
   name: Tools.create_artifact,
   description: CREATE_ARTIFACT_TOOL_DESCRIPTION,
   schema: {
-    type: 'object' as const,
+    type: 'object',
     properties: {
       title: {
-        type: 'string' as const,
+        type: 'string',
         minLength: 1,
         maxLength: CREATE_ARTIFACT_TITLE_MAX,
         description: 'Short title shown on the artifact.',
       },
       content: {
-        type: 'string' as const,
+        type: 'string',
         minLength: 1,
         maxLength: CREATE_ARTIFACT_CONTENT_MAX,
         description: 'Full artifact body. For text/html, send a complete HTML page when possible.',
       },
       type: {
-        type: 'string' as const,
+        type: 'string',
         enum: [...CREATE_ARTIFACT_TYPES],
         description: `Artifact MIME type. One of: ${CREATE_ARTIFACT_TYPES.join(', ')}.`,
       },
       identifier: {
-        type: 'string' as const,
+        type: 'string',
         maxLength: 80,
         description: 'Stable kebab-case id. Reuse it to update the same artifact.',
       },
@@ -67,7 +78,7 @@ export const CreateArtifactToolDefinition = {
   },
 };
 
-export function createArtifactTool(): DynamicStructuredTool<typeof createArtifactToolSchema> {
+export function createArtifactTool(): DynamicStructuredTool {
   return tool(
     async (input) => {
       const result = createArtifact(input);

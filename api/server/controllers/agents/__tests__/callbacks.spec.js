@@ -25,6 +25,7 @@ jest.mock('@librechat/api', () => ({
   isCodeArtifactToolOutput: jest.requireActual('@librechat/api').isCodeArtifactToolOutput,
   isCodeSessionToolName: jest.requireActual('@librechat/api').isCodeSessionToolName,
   collectToolCallIds: jest.requireActual('@librechat/api').collectToolCallIds,
+  collectArtifactImageParts: jest.requireActual('@librechat/api').collectArtifactImageParts,
 }));
 
 jest.mock('@librechat/data-schemas', () => ({
@@ -691,6 +692,51 @@ describe('createToolEndCallback', () => {
       expect(webSearchAttachment).toBeTruthy();
       expect(webSearchAttachment[Tools.web_search]).toEqual({
         results: ['result1', 'result2'],
+      });
+    });
+
+    it('saves UI-only tool images the same way as model-bound image artifacts', async () => {
+      const { saveBase64Image } = require('~/server/services/Files/process');
+      saveBase64Image.mockResolvedValue({
+        file_id: 'file-ui',
+        filename: 'open_page_mcp_RakaAI-Browser_img_mock-id.png',
+        filepath: '/images/file-ui.png',
+      });
+
+      const toolEndCallback = createToolEndCallback({ req, res, artifactPromises });
+      await toolEndCallback(
+        {
+          output: {
+            name: 'open_page_mcp_RakaAI-Browser',
+            tool_call_id: 'tool123',
+            artifact: {
+              ui_images: {
+                content: [
+                  {
+                    type: 'image_url',
+                    image_url: { url: 'data:image/png;base64,abc123' },
+                  },
+                ],
+              },
+            },
+          },
+        },
+        { run_id: 'run456', thread_id: 'thread789', provider: 'ollama' },
+      );
+
+      const [attachment] = await Promise.all(artifactPromises);
+      expect(saveBase64Image).toHaveBeenCalledWith('data:image/png;base64,abc123', {
+        req,
+        file_id: undefined,
+        filename: 'open_page_mcp_RakaAI-Browser_img_mock-id',
+        endpoint: 'ollama',
+        context: 'image_generation',
+      });
+      expect(attachment).toMatchObject({
+        file_id: 'file-ui',
+        messageId: 'run456',
+        toolCallId: 'tool123',
+        conversationId: 'thread789',
       });
     });
 
