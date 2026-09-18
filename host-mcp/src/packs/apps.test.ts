@@ -15,8 +15,18 @@ function fakeSlack(over: Partial<SlackApi> = {}): SlackApi {
       deleted: false,
       bot: false,
     }),
-    listUsers: async () => ({
-      users: [{ id: 'U1', name: 'ada', realName: 'Ada Lovelace', email: 'ada@example.com', deleted: false, bot: false }],
+    listUsers: async (options = {}) => ({
+      users: [
+        {
+          id: 'U1',
+          name: 'ada',
+          realName: 'Ada Lovelace',
+          email: 'ada@example.com',
+          deleted: false,
+          bot: false,
+        },
+      ],
+      nextCursor: options.limit === 200 ? undefined : 'more',
     }),
     searchUsers: async () => [
       { id: 'U1', name: 'ada', realName: 'Ada Lovelace', email: 'ada@example.com', deleted: false, bot: false },
@@ -109,8 +119,9 @@ test('slack tools use the injected Slack API and refuse when the user token is m
   const sent = await wired.handler({ to: '#general', text: 'shipped' });
   assert.equal(sent.isError, undefined);
   assert.match(sent.content[0].type === 'text' ? sent.content[0].text : '', /ok general shipped/);
-  const listed = await users.handler({});
+  const listed = await users.handler({ limit: '200' });
   assert.match(listed.content[0].type === 'text' ? listed.content[0].text : '', /Ada Lovelace/);
+  assert.doesNotMatch(listed.content[0].type === 'text' ? listed.content[0].text : '', /next_cursor/);
   const found = await search.handler({ query: 'ada' });
   assert.match(found.content[0].type === 'text' ? found.content[0].text : '', /U1/);
   const channelList = await channels.handler({ query: 'gen' });

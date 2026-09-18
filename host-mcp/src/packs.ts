@@ -19,9 +19,11 @@ function slackClients(config: DeviceConfig, post: typeof postJson) {
   const asUser = config.apps.slackUserToken
     ? createSlackApi(config.apps.slackUserToken, post, config.apps.timeoutMs)
     : undefined;
-  const directory = config.apps.slackToken
-    ? createSlackApi(config.apps.slackToken, post, config.apps.timeoutMs)
-    : asUser;
+  const directory = asUser
+    ? asUser
+    : config.apps.slackToken
+      ? createSlackApi(config.apps.slackToken, post, config.apps.timeoutMs)
+      : undefined;
   return { asUser, directory };
 }
 

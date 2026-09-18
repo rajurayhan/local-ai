@@ -9,6 +9,7 @@ export type SlackPerson = {
   id: string;
   name: string;
   realName: string;
+  displayName?: string;
   email?: string;
   deleted: boolean;
   bot: boolean;
@@ -47,7 +48,15 @@ type SlackMember = {
   real_name?: string;
   deleted?: boolean;
   is_bot?: boolean;
-  profile?: { email?: string; display_name?: string; real_name?: string };
+  profile?: {
+    email?: string;
+    display_name?: string;
+    display_name_normalized?: string;
+    real_name?: string;
+    real_name_normalized?: string;
+    first_name?: string;
+    last_name?: string;
+  };
 };
 
 type SlackConversation = {
@@ -95,20 +104,50 @@ function toPerson(member: SlackMember): SlackPerson | undefined {
   if (!member.id || member.deleted === true || member.is_bot === true) {
     return undefined;
   }
-  const realName = member.profile?.real_name || member.real_name || member.profile?.display_name || member.name || member.id;
+  const displayName = member.profile?.display_name?.trim() || member.profile?.display_name_normalized?.trim();
+  const realName =
+    member.profile?.real_name ||
+    member.profile?.real_name_normalized ||
+    member.real_name ||
+    displayName ||
+    member.name ||
+    member.id;
   const email = member.profile?.email?.trim();
   return {
     id: member.id,
-    name: member.name || member.profile?.display_name || member.id,
+    name: member.name || displayName || member.id,
     realName,
+    displayName: displayName && displayName.length > 0 ? displayName : undefined,
     email: email && email.length > 0 ? email : undefined,
     deleted: false,
     bot: false,
   };
 }
 
+export function normalizeSlackQuery(query: string): string {
+  return query.trim().replace(/^@+/, '').toLowerCase();
+}
+
 function personHaystack(person: SlackPerson): string {
-  return [person.id, person.name, person.realName, person.email ?? ''].join(' ').toLowerCase();
+  return [
+    person.id,
+    person.name,
+    `@${person.name}`,
+    person.realName,
+    person.displayName ?? '',
+    person.email ?? '',
+  ]
+    .join(' ')
+    .toLowerCase();
+}
+
+export function slackPersonMatches(person: SlackPerson, query: string): boolean {
+  const needle = normalizeSlackQuery(query);
+  if (needle.length < 2) {
+    return false;
+  }
+  const haystack = personHaystack(person);
+  return needle.split(/\s+/).every((token) => token.length > 0 && haystack.includes(token));
 }
 
 function formatPeople(users: SlackPerson[]): string {
@@ -220,7 +259,7 @@ export function createSlackApi(
   };
 
   const listUsers: SlackApi['listUsers'] = async (options = {}) => {
-    const limit = Math.min(Math.max(options.limit ?? 20, 1), 50);
+    const limit = Math.min(Math.max(options.limit ?? 100, 1), 200);
     const payload: Record<string, string> = { limit: String(limit) };
     if (options.cursor) {
       payload.cursor = options.cursor;
@@ -275,7 +314,7 @@ export function createSlackApi(
     lookupByEmail,
     listUsers,
     searchUsers: async (query) => {
-      const needle = query.trim().toLowerCase();
+      const needle = normalizeSlackQuery(query);
       if (needle.length < 2) {
         throw new Error('query is too short');
       }
@@ -289,13 +328,13 @@ export function createSlackApi(
 
       const matches: SlackPerson[] = [];
       let cursor: string | undefined;
-      for (let page = 0; page < 5 && matches.length < 20; page += 1) {
-        const listed = await listUsers({ cursor, limit: 50 });
+      for (let page = 0; page < 20 && matches.length < 25; page += 1) {
+        const listed = await listUsers({ cursor, limit: 200 });
         for (const person of listed.users) {
-          if (personHaystack(person).includes(needle)) {
+          if (slackPersonMatches(person, needle)) {
             matches.push(person);
           }
-          if (matches.length >= 20) {
+          if (matches.length >= 25) {
             break;
           }
         }

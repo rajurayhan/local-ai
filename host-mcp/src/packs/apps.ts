@@ -82,9 +82,10 @@ export function createAppsPack(config: DeviceConfig, post: HttpPoster, slack?: S
       },
       {
         name: 'slack_list_users',
-        description: 'List people in the Slack workspace. Optional cursor continues a previous page.',
+        description: 'List people in the Slack workspace. Optional cursor continues a previous page. Limit defaults to 100 and maxes at 200.',
         inputSchema: objectSchema({
           cursor: { type: 'string', description: 'next_cursor from a previous list' },
+          limit: { type: 'string', description: 'Page size from 1 to 200. Defaults to 100.' },
         }),
         handler: async (args) => {
           const directory = slackDirectory(slack);
@@ -93,7 +94,12 @@ export function createAppsPack(config: DeviceConfig, post: HttpPoster, slack?: S
           }
           try {
             const cursor = String(args.cursor ?? '').trim();
-            const page = await directory.listUsers({ cursor: cursor.length > 0 ? cursor : undefined });
+            const rawLimit = String(args.limit ?? '').trim();
+            const limit = rawLimit.length > 0 ? Number(rawLimit) : undefined;
+            const page = await directory.listUsers({
+              cursor: cursor.length > 0 ? cursor : undefined,
+              limit: Number.isFinite(limit) ? limit : undefined,
+            });
             return ok(formatSlackUsers(page.users, page.nextCursor));
           } catch (error) {
             return fail(error instanceof Error ? error.message : 'Slack list users failed');

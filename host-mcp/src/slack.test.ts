@@ -3,7 +3,7 @@ import { test } from 'node:test';
 
 import type { HttpPoster } from './types.ts';
 import type { SlackApi } from './slack.ts';
-import { classifySlackTo, createSlackApi, sendSlackMessage } from './slack.ts';
+import { classifySlackTo, createSlackApi, sendSlackMessage, slackPersonMatches } from './slack.ts';
 
 function fakeSlack(over: Partial<SlackApi> = {}): SlackApi {
   return {
@@ -80,6 +80,22 @@ test('looks up email then opens a DM', async () => {
   assert.equal(result, 'D-U9:ping');
 });
 
+test('matches Slack people on handle, display name, and multi-word names', () => {
+  const person = {
+    id: 'U2',
+    name: 'ada.lovelace',
+    realName: 'Ada Lovelace',
+    displayName: 'The Countess',
+    email: 'ada@example.com',
+    deleted: false,
+    bot: false,
+  };
+  assert.equal(slackPersonMatches(person, '@ada.lovelace'), true);
+  assert.equal(slackPersonMatches(person, 'Countess'), true);
+  assert.equal(slackPersonMatches(person, 'Ada Lovelace'), true);
+  assert.equal(slackPersonMatches(person, 'nobody'), false);
+});
+
 test('createSlackApi reports a truncated users.list body', async () => {
   const post: HttpPoster = async () => ({
     status: 200,
@@ -116,8 +132,37 @@ test('createSlackApi lists and searches people through HTTP', async () => {
   const listed = await slack.listUsers();
   assert.equal(listed.users.length, 1);
   assert.equal(listed.users[0]?.id, 'U2');
-  const found = await slack.searchUsers('ada');
+  const found = await slack.searchUsers('@Ada');
   assert.equal(found[0]?.email, 'ada@example.com');
+});
+
+test('createSlackApi search walks later user pages', async () => {
+  let pages = 0;
+  const post: HttpPoster = async (url) => {
+    pages += 1;
+    if (url.includes('cursor=')) {
+      return {
+        status: 200,
+        body: JSON.stringify({
+          ok: true,
+          members: [{ id: 'U9', name: 'grace', real_name: 'Grace Hopper', profile: { display_name: 'Amazing Grace' } }],
+        }),
+      };
+    }
+    return {
+      status: 200,
+      body: JSON.stringify({
+        ok: true,
+        members: [{ id: 'U1', name: 'other', real_name: 'Other Person' }],
+        response_metadata: { next_cursor: 'page2' },
+      }),
+    };
+  };
+
+  const slack = createSlackApi('xoxp-test', post, 1000, 4000);
+  const found = await slack.searchUsers('Amazing Grace');
+  assert.equal(found[0]?.id, 'U9');
+  assert.equal(pages, 2);
 });
 
 test('createSlackApi looks up email then posts through HTTP', async () => {
