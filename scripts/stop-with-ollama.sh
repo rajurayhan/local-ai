@@ -15,4 +15,4 @@ else
   exit 1
 fi
 
-echo "RakaAI is stopped. Ollama is still running (brew services stop ollama to shut it down)."
+echo "RakaAI is stopped. Ollama and the device MCP (if started) are still running."

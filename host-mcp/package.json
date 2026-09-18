@@ -1,0 +1,23 @@
+{
+  "name": "rakaai-host-mcp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Host-side MCP gateway so LibreChat agents can act on this Mac",
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/server.ts",
+    "test": "tsx --test src/*.test.ts src/packs/*.test.ts"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.2"
+  }
+}

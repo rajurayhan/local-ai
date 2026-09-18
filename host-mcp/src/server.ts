@@ -1,0 +1,140 @@
+import { randomUUID } from 'node:crypto';
+import fs from 'node:fs';
+import http from 'node:http';
+
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { z } from 'zod';
+
+import { loadConfig } from './config.ts';
+import { hashArgs, writeAudit } from './log.ts';
+import { createPacks, PACK_NAMES } from './packs.ts';
+import type { DeviceConfig, JsonSchema, Pack, PackName } from './types.ts';
+
+const sessions = new Map<string, StreamableHTTPServerTransport>();
+
+function isPackName(value: string): value is PackName {
+  return PACK_NAMES.includes(value as PackName);
+}
+
+function toZodShape(schema: JsonSchema): z.ZodRawShape {
+  const shape: z.ZodRawShape = {};
+  for (const key of Object.keys(schema.properties)) {
+    const field = schema.required?.includes(key) ? z.string() : z.string().optional();
+    shape[key] = field;
+  }
+  return shape;
+}
+
+function registerPack(server: McpServer, pack: Pack, config: DeviceConfig): void {
+  for (const tool of pack.tools) {
+    server.tool(tool.name, tool.description, toZodShape(tool.inputSchema), async (args) => {
+      const started = Date.now();
+      const result = await tool.handler(args as Record<string, unknown>);
+      writeAudit(config.logPath, {
+        pack: pack.name,
+        tool: tool.name,
+        argsHash: hashArgs(args),
+        ok: result.isError !== true,
+        ms: Date.now() - started,
+        error: result.isError === true ? 'tool_error' : undefined,
+      });
+      return result;
+    });
+  }
+}
+
+function authorize(req: http.IncomingMessage, token: string): boolean {
+  if (!token) {
+    return false;
+  }
+  const header = req.headers.authorization;
+  return header === `Bearer ${token}`;
+}
+
+async function handleMcp(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  pack: Pack,
+  config: DeviceConfig,
+): Promise<void> {
+  const sessionId = req.headers['mcp-session-id'];
+  const existing = typeof sessionId === 'string' ? sessions.get(`${pack.name}:${sessionId}`) : undefined;
+
+  if (existing) {
+    await existing.handleRequest(req, res);
+    return;
+  }
+
+  if (req.method === 'GET' || req.method === 'DELETE') {
+    res.writeHead(400).end('Missing MCP session');
+    return;
+  }
+
+  const transport = new StreamableHTTPServerTransport({
+    sessionIdGenerator: () => randomUUID(),
+  });
+  const mcp = new McpServer({ name: `rakaai-${pack.name}`, version: '1.0.0' });
+  registerPack(mcp, pack, config);
+  await mcp.connect(transport);
+  await transport.handleRequest(req, res);
+
+  if (transport.sessionId) {
+    sessions.set(`${pack.name}:${transport.sessionId}`, transport);
+    transport.onclose = () => {
+      if (transport.sessionId) {
+        sessions.delete(`${pack.name}:${transport.sessionId}`);
+      }
+    };
+  }
+}
+
+export function createServer(config: DeviceConfig): http.Server {
+  fs.mkdirSync(config.files.root, { recursive: true });
+  const packs = createPacks(config);
+
+  return http.createServer((req, res) => {
+    void (async () => {
+      const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
+
+      if (req.method === 'GET' && url.pathname === '/health') {
+        res.writeHead(200, { 'Content-Type': 'application/json' }).end(
+          JSON.stringify({ ok: true, packs: PACK_NAMES }),
+        );
+        return;
+      }
+
+      const match = /^\/mcp\/([^/]+)\/?$/.exec(url.pathname);
+      if (!match || !isPackName(match[1])) {
+        res.writeHead(404).end('Not found');
+        return;
+      }
+
+      if (!authorize(req, config.token)) {
+        res.writeHead(401).end('Unauthorized');
+        return;
+      }
+
+      await handleMcp(req, res, packs[match[1]], config);
+    })().catch((error: unknown) => {
+      if (!res.headersSent) {
+        res.writeHead(500).end(error instanceof Error ? error.message : 'Internal error');
+      }
+    });
+  });
+}
+
+const isMain = process.argv[1] != null && import.meta.url.endsWith(process.argv[1].replace(/\\/g, '/'));
+
+if (isMain || process.argv[1]?.endsWith('server.ts')) {
+  const config = loadConfig();
+  if (!config.token) {
+    console.error('DEVICE_MCP_TOKEN is required (set it in .env or host-mcp/config.json).');
+    process.exit(1);
+  }
+  const server = createServer(config);
+  server.listen(config.port, config.host, () => {
+    console.log(`RakaAI device MCP listening on http://${config.host}:${config.port}`);
+    console.log(`Packs: ${PACK_NAMES.map((name) => `/mcp/${name}`).join(', ')}`);
+  });
+}

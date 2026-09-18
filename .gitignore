@@ -80,6 +80,11 @@ api/tsconfig.json
 librechat.yaml
 librechat.yml
 
+# Host device MCP local secrets and browser profile
+host-mcp/config.json
+host-mcp/.browser-profile/
+host-mcp/screenshots/
+
 # Environment
 .env*
 my.secrets

@@ -1,0 +1,28 @@
+{
+  "host": "0.0.0.0",
+  "port": 8765,
+  "token": "",
+  "logPath": "/tmp/rakaai-device-mcp.log",
+  "files": {
+    "root": "~/Documents/RakaAI",
+    "writes": false,
+    "maxReadBytes": 262144
+  },
+  "shell": {
+    "cwdAllow": ["~/Documents/RakaAI"],
+    "timeoutMs": 15000,
+    "maxOutputBytes": 32768
+  },
+  "browser": {
+    "allowedDomains": [],
+    "userDataDir": "~/Documents/RakaAI/.browser-profile"
+  },
+  "desktop": {
+    "screenshotDir": "~/Documents/RakaAI/screenshots"
+  },
+  "apps": {
+    "hooks": [],
+    "timeoutMs": 15000,
+    "maxResponseBytes": 32768
+  }
+}

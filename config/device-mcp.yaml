@@ -1,0 +1,46 @@
+mcpSettings:
+  allowedAddresses:
+    - 'host.docker.internal:8765'
+    - '127.0.0.1:8765'
+
+mcpServers:
+  rakaai-files:
+    type: streamable-http
+    url: http://host.docker.internal:8765/mcp/files
+    timeout: 60000
+    apiKey:
+      source: admin
+      authorization_type: bearer
+      key: '${DEVICE_MCP_TOKEN}'
+  rakaai-shell:
+    type: streamable-http
+    url: http://host.docker.internal:8765/mcp/shell
+    timeout: 60000
+    apiKey:
+      source: admin
+      authorization_type: bearer
+      key: '${DEVICE_MCP_TOKEN}'
+  rakaai-browser:
+    type: streamable-http
+    url: http://host.docker.internal:8765/mcp/browser
+    timeout: 120000
+    apiKey:
+      source: admin
+      authorization_type: bearer
+      key: '${DEVICE_MCP_TOKEN}'
+  rakaai-desktop:
+    type: streamable-http
+    url: http://host.docker.internal:8765/mcp/desktop
+    timeout: 60000
+    apiKey:
+      source: admin
+      authorization_type: bearer
+      key: '${DEVICE_MCP_TOKEN}'
+  rakaai-apps:
+    type: streamable-http
+    url: http://host.docker.internal:8765/mcp/apps
+    timeout: 60000
+    apiKey:
+      source: admin
+      authorization_type: bearer
+      key: '${DEVICE_MCP_TOKEN}'

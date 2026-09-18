@@ -118,6 +118,10 @@ if "EMBEDDINGS_PROVIDER=ollama" not in text:
         "EMBEDDINGS_MODEL=nomic-embed-text\n"
     )
     changed = True
+if "DEVICE_MCP_TOKEN=" not in text:
+    import secrets
+    text += f"\nDEVICE_MCP_TOKEN={secrets.token_urlsafe(32)}\n"
+    changed = True
 if changed:
     path.write_text(text)
     print("Updated .env for RakaAI, search, and local RAG")
@@ -130,6 +134,8 @@ ensure_override() {
     cat >"$override" <<'EOF'
 services:
   api:
+    environment:
+      - DEVICE_MCP_TOKEN=${DEVICE_MCP_TOKEN}
     volumes:
       - type: bind
         source: ./librechat.yaml
@@ -144,6 +150,25 @@ services:
 EOF
     echo "Wrote docker-compose.override.yaml so RakaAI loads librechat.yaml."
     return
+  fi
+
+  if ! grep -q 'DEVICE_MCP_TOKEN' "$override"; then
+    python3 - "$override" <<'PY'
+from pathlib import Path
+import sys
+path = Path(sys.argv[1])
+text = path.read_text()
+needle = "  api:\n    volumes:\n"
+extra = (
+    "  api:\n"
+    "    environment:\n"
+    "      - DEVICE_MCP_TOKEN=${DEVICE_MCP_TOKEN}\n"
+    "    volumes:\n"
+)
+if needle in text:
+    path.write_text(text.replace(needle, extra, 1))
+    print("Added DEVICE_MCP_TOKEN to docker-compose.override.yaml")
+PY
   fi
 
   if grep -q 'EMBEDDINGS_PROVIDER=ollama' "$override"; then
@@ -241,8 +266,9 @@ wait_for_app() {
   for _ in $(seq 1 60); do
     if curl -sf "$APP_URL/health" >/dev/null 2>&1; then
       echo "RakaAI is ready at $APP_URL"
-      echo "Chat: endpoint RakaAI, or the RakaAI Agent for files + images."
+      echo "Chat: endpoint RakaAI, or a RakaAI Agent for files, images, or device tools."
       echo "Image generation: npm run start:image-gen  (Flux proxy on :7860)."
+      echo "Device actions:   npm run start:device-mcp (host MCP on :8765)."
       return
     fi
     sleep 2
@@ -261,6 +287,7 @@ ensure_model "$EMBED_MODEL"
 ensure_env
 ensure_override
 ensure_yaml
+python3 "$ROOT_DIR/scripts/ensure-device-mcp-yaml.py" "$ROOT_DIR/librechat.yaml" "$ROOT_DIR/config/device-mcp.yaml"
 echo "Starting RakaAI..."
 compose up -d
 wait_for_app
