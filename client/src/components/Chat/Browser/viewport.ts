@@ -30,9 +30,10 @@ export function isBrowserViewTool(name: string, knownServers?: readonly string[]
     return false;
   }
   const [tool, server] = splitToolCallName(name, knownServers);
-  return (
-    tool != null && server != null && BROWSER_PACK_NAMES.has(server) && VIEW_TOOLS.has(tool)
-  );
+  if (server == null || !BROWSER_PACK_NAMES.has(server)) {
+    return false;
+  }
+  return VIEW_TOOLS.has(tool);
 }
 
 export function extractPageUrl(text: string | null | undefined): string | undefined {
