@@ -2,25 +2,25 @@
   "host": "0.0.0.0",
   "port": 8765,
   "token": "",
-  "logPath": "/tmp/sulus-device-mcp.log",
+  "logPath": "/tmp/suluspersonal-device-mcp.log",
   "files": {
-    "root": "~/Documents/SulusPersonalAI",
+    "root": "~/Documents/SulusPersonal",
     "writes": false,
     "maxReadBytes": 262144
   },
   "shell": {
-    "cwdAllow": ["~/Documents/SulusPersonalAI"],
+    "cwdAllow": ["~/Documents/SulusPersonal"],
     "timeoutMs": 15000,
     "maxOutputBytes": 32768
   },
   "browser": {
     "allowedDomains": [],
-    "userDataDir": "~/Documents/SulusPersonalAI/.browser-profile",
+    "userDataDir": "~/Documents/SulusPersonal/.browser-profile",
     "headless": true,
     "timeoutMs": 45000
   },
   "desktop": {
-    "screenshotDir": "~/Documents/SulusPersonalAI/screenshots"
+    "screenshotDir": "~/Documents/SulusPersonal/screenshots"
   },
   "apps": {
     "hooks": [],

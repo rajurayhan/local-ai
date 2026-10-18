@@ -78,7 +78,7 @@ export function buildSharedLinkStartupPayload(
   env: SharedLinkStartupEnv = process.env,
 ): TSharedLinkStartupConfig {
   const payload: TSharedLinkStartupConfig = {
-    appTitle: env.APP_TITLE || 'Sulus Personal AI',
+    appTitle: env.APP_TITLE || 'SulusPersonal',
   };
 
   if (typeof env.ANALYTICS_GTM_ID === 'string') {

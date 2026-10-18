@@ -142,7 +142,7 @@ cache: true
 
 # Custom interface configuration
 interface:
-  customWelcome: 'Welcome to Sulus Personal AI! Enjoy your experience.'
+  customWelcome: 'Welcome to SulusPersonal! Enjoy your experience.'
   # Enable/disable file search as a chatarea selection (default: true)
   # Note: This setting does not disable the Agents File Search Capability.
   # To disable the Agents Capability, see the Agents Endpoint configuration instead.
@@ -157,15 +157,15 @@ interface:
     externalUrl: '/terms'
     openNewTab: false
     modalAcceptance: true
-    modalTitle: 'Terms of Service for Sulus Personal AI'
+    modalTitle: 'Terms of Service for SulusPersonal'
     modalContent: |
-      # Terms of Service for Sulus Personal AI
+      # Terms of Service for SulusPersonal
 
       *Last updated: September 18, 2026*
 
-      Before you continue, please review Sulus Personal AI's [Terms of Service](/terms) and [Privacy Policy](/privacy).
+      Before you continue, please review SulusPersonal's [Terms of Service](/terms) and [Privacy Policy](/privacy).
 
-      By choosing Accept, you agree to those terms. You are responsible for how you use the service and any AI-generated output. Do not use Sulus Personal AI for unlawful purposes or to submit content you do not have the right to share.
+      By choosing Accept, you agree to those terms. You are responsible for how you use the service and any AI-generated output. Do not use SulusPersonal for unlawful purposes or to submit content you do not have the right to share.
 
   modelSelect: true
   parameters: true

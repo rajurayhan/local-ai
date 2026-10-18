@@ -296,7 +296,7 @@ describe('ToolCall', () => {
       expect(screen.queryByTestId('attachment-group')).not.toBeInTheDocument();
     });
 
-    it('pins a Sulus-Browser screenshot to the browser row instead of the attachment group', () => {
+    it('pins a SulusPersonal-Browser screenshot to the browser row instead of the attachment group', () => {
       const attachments = [
         {
           filename: 'open_page_img.png',
@@ -310,7 +310,7 @@ describe('ToolCall', () => {
       renderWithRecoil(
         <ToolCall
           {...mockProps}
-          name={`open_page${Constants.mcp_delimiter}Sulus-Browser`}
+          name={`open_page${Constants.mcp_delimiter}SulusPersonal-Browser`}
           output={'https://example.com/docs\n\nHello'}
           attachments={attachments as any}
         />,

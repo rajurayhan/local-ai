@@ -9,7 +9,7 @@ import {
 describe('document title', () => {
   beforeEach(() => {
     localStorage.clear();
-    localStorage.setItem(LocalStorageKeys.APP_TITLE, 'Sulus Personal AI');
+    localStorage.setItem(LocalStorageKeys.APP_TITLE, 'SulusPersonal');
     document.title = '';
   });
 
@@ -26,13 +26,13 @@ describe('document title', () => {
   it('uses the app title when chat titles are disabled', () => {
     setDocumentTitle('Project status', false);
 
-    expect(document.title).toBe('Sulus Personal AI');
+    expect(document.title).toBe('SulusPersonal');
   });
 
   it('uses the app title when the conversation title is empty', () => {
     setDocumentTitle('', true);
 
-    expect(document.title).toBe('Sulus Personal AI');
+    expect(document.title).toBe('SulusPersonal');
   });
 
   it('uses a conversation deliberately titled New Chat when enabled', () => {
@@ -50,7 +50,7 @@ describe('document title', () => {
 
     setDocumentTitle('', true);
 
-    expect(document.title).toBe('Sulus Personal AI');
+    expect(document.title).toBe('SulusPersonal');
   });
 
   it('uses the default app title when the stored app title is empty', () => {
@@ -58,7 +58,7 @@ describe('document title', () => {
 
     setDocumentTitle('', true);
 
-    expect(document.title).toBe('Sulus Personal AI');
+    expect(document.title).toBe('SulusPersonal');
   });
 
   it('ignores a leftover LibreChat title from before the rebrand', () => {
@@ -66,7 +66,7 @@ describe('document title', () => {
 
     setDocumentTitle('', true);
 
-    expect(document.title).toBe('Sulus Personal AI');
+    expect(document.title).toBe('SulusPersonal');
   });
 
   it('ignores a leftover RakaAI title from before the rebrand', () => {
@@ -74,7 +74,15 @@ describe('document title', () => {
 
     setDocumentTitle('', true);
 
-    expect(document.title).toBe('Sulus Personal AI');
+    expect(document.title).toBe('SulusPersonal');
+  });
+
+  it('ignores a leftover Sulus Personal AI title from before the rebrand', () => {
+    localStorage.setItem(LocalStorageKeys.APP_TITLE, 'Sulus Personal AI');
+
+    setDocumentTitle('', true);
+
+    expect(document.title).toBe('SulusPersonal');
   });
 
   it('uses the default app title when storage is unavailable', () => {
@@ -84,7 +92,7 @@ describe('document title', () => {
 
     setDocumentTitle('', true);
 
-    expect(document.title).toBe('Sulus Personal AI');
+    expect(document.title).toBe('SulusPersonal');
   });
 
   it('defaults to enabled when the stored setting is malformed', () => {

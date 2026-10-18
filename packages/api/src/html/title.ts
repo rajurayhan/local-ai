@@ -5,7 +5,7 @@ const APP_TITLE_SENTINEL = 'data-librechat-app-title="true"';
 
 /** Matches `/api/config` when `APP_TITLE` is unset, so the shell and the
  *  later config payload cannot disagree on the default brand. */
-export const DEFAULT_APP_TITLE = 'Sulus Personal AI';
+export const DEFAULT_APP_TITLE = 'SulusPersonal';
 
 export const resolveAppTitle = (appTitle?: string | null): string => {
   const trimmed = appTitle?.trim();

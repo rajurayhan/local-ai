@@ -7,7 +7,7 @@ import { after, test } from 'node:test';
 import { defaultConfig } from '../config.ts';
 import { createFilesPack, formatEntry, formatSize, looksBinary, parseCount } from './files.ts';
 
-const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sulus-pack-'));
+const root = fs.mkdtempSync(path.join(os.tmpdir(), 'suluspersonal-pack-'));
 fs.writeFileSync(path.join(root, 'readme.txt'), 'hello');
 
 after(() => {

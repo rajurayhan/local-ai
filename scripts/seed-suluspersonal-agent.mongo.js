@@ -1,6 +1,6 @@
 /* global db, quit, ObjectId */
-// Idempotent seed for local Sulus Personal AI agents.
-// Usage: docker exec -i chat-mongodb mongosh LibreChat --quiet < scripts/seed-sulus-agent.mongo.js
+// Idempotent seed for local SulusPersonal agents.
+// Usage: docker exec -i chat-mongodb mongosh LibreChat --quiet < scripts/seed-suluspersonal-agent.mongo.js
 //
 // The main agent keeps file_search + gated image gen, plus the files MCP pack.
 // Other packs are separate agents so qwen2.5:7b is not given every tool at once.
@@ -13,15 +13,22 @@ if (!user) {
   quit(0);
 }
 
-// Prior local brand used agent_rakaai_* ids and RakaAI-* MCP packs.
+// Prior local brands used agent_rakaai_* / agent_sulus_* ids and older MCP packs.
 const LEGACY_AGENT_IDS = {
-  agent_rakaai_local: 'agent_sulus_local',
-  agent_rakaai_apps: 'agent_sulus_apps',
-  agent_rakaai_browser: 'agent_sulus_browser',
-  agent_rakaai_shell: 'agent_sulus_shell',
-  agent_rakaai_code: 'agent_sulus_code',
-  agent_rakaai_desktop: 'agent_sulus_desktop',
-  agent_rakaai_calendar: 'agent_sulus_calendar',
+  agent_rakaai_local: 'agent_suluspersonal_local',
+  agent_rakaai_apps: 'agent_suluspersonal_apps',
+  agent_rakaai_browser: 'agent_suluspersonal_browser',
+  agent_rakaai_shell: 'agent_suluspersonal_shell',
+  agent_rakaai_code: 'agent_suluspersonal_code',
+  agent_rakaai_desktop: 'agent_suluspersonal_desktop',
+  agent_rakaai_calendar: 'agent_suluspersonal_calendar',
+  agent_sulus_local: 'agent_suluspersonal_local',
+  agent_sulus_apps: 'agent_suluspersonal_apps',
+  agent_sulus_browser: 'agent_suluspersonal_browser',
+  agent_sulus_shell: 'agent_suluspersonal_shell',
+  agent_sulus_code: 'agent_suluspersonal_code',
+  agent_sulus_desktop: 'agent_suluspersonal_desktop',
+  agent_sulus_calendar: 'agent_suluspersonal_calendar',
 };
 
 for (const [legacyId, nextId] of Object.entries(LEGACY_AGENT_IDS)) {
@@ -148,15 +155,15 @@ function upsertAgent(id, version, label) {
 }
 
 upsertAgent(
-  'agent_sulus_local',
+  'agent_suluspersonal_local',
   baseVersion({
-    name: 'Sulus Personal AI',
+    name: 'SulusPersonal',
     description:
-      'Sulus Personal AI. Local assistant for uploaded files, files anywhere on this Mac, and images when asked. Authored by Sulus Personal AI.',
+      'SulusPersonal. Local assistant for uploaded files, files anywhere on this Mac, and images when asked. Authored by SulusPersonal.',
     instructions: [
-      'You are Sulus Personal AI. Answer the user in plain sentences.',
+      'You are SulusPersonal. Answer the user in plain sentences.',
       '',
-      'Use file_search for documents the user uploaded in chat. Use the files tools to list, find, search, or read any path on this Mac. Absolute paths and ~/... work; a relative path is under the default Documents/SulusPersonalAI folder.',
+      'Use file_search for documents the user uploaded in chat. Use the files tools to list, find, search, or read any path on this Mac. Absolute paths and ~/... work; a relative path is under the default Documents/SulusPersonal folder.',
       'Use file_search only when the answer is not already in this conversation. Earlier file_search passages stay in the thread — do not search again unless the user asks about something those passages do not cover.',
       '',
       'Rules:',
@@ -168,11 +175,11 @@ upsertAgent(
     ].join('\n'),
     artifacts: 'default',
     tools: ['file_search', 'stable-diffusion'],
-    mcpServerNames: ['Sulus-Files'],
+    mcpServerNames: ['SulusPersonal-Files'],
     conversation_starters: [
       'Search my uploaded files for the latest decision.',
       'Find invoices in Downloads.',
-      'Search my SulusPersonalAI folder for the word invoice.',
+      'Search my SulusPersonal folder for the word invoice.',
       'Generate an image of a quiet river at dusk.',
     ],
   }),
@@ -180,13 +187,13 @@ upsertAgent(
 );
 
 upsertAgent(
-  'agent_sulus_apps',
+  'agent_suluspersonal_apps',
   baseVersion({
-    name: 'Sulus-Apps',
+    name: 'SulusPersonal-Apps',
     description:
-      'Sulus-Apps. Looks up Slack people and channels, reads recent Slack, sends Slack as you, and triggers webhooks. Authored by Sulus Personal AI.',
+      'SulusPersonal-Apps. Looks up Slack people and channels, reads recent Slack, sends Slack as you, and triggers webhooks. Authored by SulusPersonal.',
     instructions: [
-      'You are Sulus Personal AI Apps. Answer in plain sentences.',
+      'You are SulusPersonal Apps. Answer in plain sentences.',
       'Slack messages are sent as the user, not as a bot. Wait for approval on slack_send_message.',
       'Use slack_read_messages to read a #channel or a person. If you only have a name, call slack_search_users first, then send or read with the user id or that name.',
       'Write @name in the message to mention that person. Do not use @here, @channel, or @everyone.',
@@ -196,7 +203,7 @@ upsertAgent(
       'Call one tool, then wait. After a tool result, tell the user what happened.',
       'Do not invent hook ids. Do not output JSON unless the user asked for it.',
     ].join('\n'),
-    mcpServerNames: ['Sulus-Apps'],
+    mcpServerNames: ['SulusPersonal-Apps'],
     conversation_starters: [
       'Who is in Slack named Ada?',
       'What was just said in #general?',
@@ -207,48 +214,48 @@ upsertAgent(
 );
 
 upsertAgent(
-  'agent_sulus_browser',
+  'agent_suluspersonal_browser',
   baseVersion({
-    name: 'Sulus-Browser',
+    name: 'SulusPersonal-Browser',
     description:
-      'Sulus-Browser. Opens JavaScript-rendered pages on this Mac through the isolated device browser. Authored by Sulus Personal AI.',
+      'SulusPersonal-Browser. Opens JavaScript-rendered pages on this Mac through the isolated device browser. Authored by SulusPersonal.',
     instructions: [
-      'You are Sulus Personal AI Browser. Answer in plain sentences.',
+      'You are SulusPersonal Browser. Answer in plain sentences.',
       'Open a page before you read it, list links, click, fill a field, or capture it. One tool per turn.',
       'Pages may take a few seconds to finish Cloudflare or JavaScript rendering.',
       'After a tool result, summarize what you see. Do not output JSON.',
     ].join('\n'),
-    mcpServerNames: ['Sulus-Browser'],
+    mcpServerNames: ['SulusPersonal-Browser'],
     conversation_starters: ['Open example.com and tell me what it says.'],
   }),
   'browser MCP',
 );
 
 upsertAgent(
-  'agent_sulus_shell',
+  'agent_suluspersonal_shell',
   baseVersion({
-    name: 'Sulus-Shell',
+    name: 'SulusPersonal-Shell',
     description:
-      'Sulus-Shell. Runs allowlisted commands in the Documents/SulusPersonalAI folder. Approval is required. Authored by Sulus Personal AI.',
+      'SulusPersonal-Shell. Runs allowlisted commands in the Documents/SulusPersonal folder. Approval is required. Authored by SulusPersonal.',
     instructions: [
-      'You are Sulus Personal AI Shell. Answer in plain sentences.',
+      'You are SulusPersonal Shell. Answer in plain sentences.',
       'Run one simple program at a time. No pipes, no sudo, no destructive flags.',
       'Wait for approval. After the result, explain the output. Do not output JSON.',
     ].join('\n'),
-    mcpServerNames: ['Sulus-Shell'],
+    mcpServerNames: ['SulusPersonal-Shell'],
     conversation_starters: ['List the files in the allowed folder.'],
   }),
   'shell MCP',
 );
 
 upsertAgent(
-  'agent_sulus_code',
+  'agent_suluspersonal_code',
   baseVersion({
-    name: 'Sulus-Code',
+    name: 'SulusPersonal-Code',
     description:
-      'Sulus-Code. Runs Python and other languages in the local Code Interpreter sandbox. Authored by Sulus Personal AI.',
+      'SulusPersonal-Code. Runs Python and other languages in the local Code Interpreter sandbox. Authored by SulusPersonal.',
     instructions: [
-      'You are Sulus Personal AI Code. Answer in plain sentences.',
+      'You are SulusPersonal Code. Answer in plain sentences.',
       'When the user wants code run, call the bash_tool function on the first turn. Never print the tool call as JSON or markdown.',
       "Put the program in command, for example: python3 -c 'print(2+2)'",
       'After the tool result, explain the real stdout. Do not invent output.',
@@ -268,18 +275,18 @@ upsertAgent(
 );
 
 upsertAgent(
-  'agent_sulus_desktop',
+  'agent_suluspersonal_desktop',
   baseVersion({
-    name: 'Sulus-Desktop',
+    name: 'SulusPersonal-Desktop',
     description:
-      'Sulus-Desktop. Opens Mac apps or files, reads and writes the clipboard, clicks menus, presses shortcuts, types, and captures the screen. Approval is required every time. Authored by Sulus Personal AI.',
+      'SulusPersonal-Desktop. Opens Mac apps or files, reads and writes the clipboard, clicks menus, presses shortcuts, types, and captures the screen. Approval is required every time. Authored by SulusPersonal.',
     instructions: [
-      'You are Sulus Personal AI Desktop. Answer in plain sentences.',
+      'You are SulusPersonal Desktop. Answer in plain sentences.',
       'Open the app first if it is not already open. Then do one action: a menu path such as File > New, a shortcut such as command+n, typing, clipboard, or open_item for a URL or file.',
       'Do one action per turn and wait for approval. Then say what happened.',
       'Do not claim you clicked, typed, or pressed keys unless a tool result says so.',
     ].join('\n'),
-    mcpServerNames: ['Sulus-Desktop'],
+    mcpServerNames: ['SulusPersonal-Desktop'],
     conversation_starters: [
       'What apps are open?',
       'What is on my clipboard?',
@@ -290,19 +297,19 @@ upsertAgent(
 );
 
 upsertAgent(
-  'agent_sulus_calendar',
+  'agent_suluspersonal_calendar',
   baseVersion({
-    name: 'Sulus-Calendar',
+    name: 'SulusPersonal-Calendar',
     description:
-      'Sulus-Calendar. Lists and creates Calendar events and Reminders on this Mac. Authored by Sulus Personal AI.',
+      'SulusPersonal-Calendar. Lists and creates Calendar events and Reminders on this Mac. Authored by SulusPersonal.',
     instructions: [
-      'You are Sulus Personal AI Calendar. Answer in plain sentences.',
+      'You are SulusPersonal Calendar. Answer in plain sentences.',
       'Use list_events for today, tomorrow, or a YYYY-MM-DD date. Use list_reminders for unfinished reminders.',
       'create_event and add_reminder wait for approval. start looks like 2026-09-19 15:00.',
       'Call one tool, then wait. After a tool result, tell the user what you found or created.',
       'Do not invent events. Do not output JSON.',
     ].join('\n'),
-    mcpServerNames: ['Sulus-Calendar'],
+    mcpServerNames: ['SulusPersonal-Calendar'],
     conversation_starters: [
       'What is on my calendar today?',
       'What reminders are open?',

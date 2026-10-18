@@ -1,9 +1,9 @@
 import { LocalStorageKeys } from 'librechat-data-provider';
 
 export const CHAT_TITLE_IN_TAB_KEY = 'chatTitleInTab';
-export const DEFAULT_APP_TITLE = 'Sulus Personal AI';
+export const DEFAULT_APP_TITLE = 'SulusPersonal';
 /** Previous defaults baked into older shells and leftover localStorage. */
-const LEGACY_APP_TITLES = new Set(['LibreChat', 'RakaAI']);
+const LEGACY_APP_TITLES = new Set(['LibreChat', 'RakaAI', 'Sulus Personal AI']);
 
 export const hasRealTitle = (title?: string | null): title is string =>
   title != null && title !== '' && title !== 'New Chat';

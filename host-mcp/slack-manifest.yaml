@@ -2,12 +2,12 @@ _metadata:
   major_version: 2
   minor_version: 1
 display_information:
-  name: Sulus Personal AI
-  description: Read and send Slack as you from Sulus Personal AI agents running on this Mac.
+  name: SulusPersonal
+  description: Read and send Slack as you from SulusPersonal agents running on this Mac.
   background_color: "#111827"
 features:
   bot_user:
-    display_name: Sulus Personal AI
+    display_name: SulusPersonal
     always_online: false
 oauth_config:
   scopes:

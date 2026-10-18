@@ -15,4 +15,4 @@ else
   exit 1
 fi
 
-echo "Sulus Personal AI is stopped. Ollama and the device MCP (if started) are still running."
+echo "SulusPersonal is stopped. Ollama and the device MCP (if started) are still running."

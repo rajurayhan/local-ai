@@ -1,7 +1,7 @@
 import { Constants, imageExtRegex, splitToolCallName } from 'librechat-data-provider';
 import type { TAttachment, TFile } from 'librechat-data-provider';
 
-export const BROWSER_PACK_NAME = 'Sulus-Browser';
+export const BROWSER_PACK_NAME = 'SulusPersonal-Browser';
 
 const VIEW_TOOLS = new Set(['open_page', 'click', 'fill', 'capture_page']);
 

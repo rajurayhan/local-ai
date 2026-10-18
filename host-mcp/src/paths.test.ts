@@ -6,7 +6,7 @@ import { after, before, test } from 'node:test';
 
 import { resolveInsideRoot, resolveUserPath } from './paths.ts';
 
-const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sulus-files-'));
+const root = fs.mkdtempSync(path.join(os.tmpdir(), 'suluspersonal-files-'));
 const nested = path.join(root, 'notes');
 
 before(() => {

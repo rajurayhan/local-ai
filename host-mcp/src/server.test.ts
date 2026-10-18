@@ -85,12 +85,12 @@ test('health lists the shared pack names', async () => {
   const body = (await response.json()) as { packs: string[] };
   assert.equal(response.status, 200);
   assert.deepEqual(body.packs, [
-    'Sulus-Files',
-    'Sulus-Shell',
-    'Sulus-Browser',
-    'Sulus-Desktop',
-    'Sulus-Apps',
-    'Sulus-Calendar',
+    'SulusPersonal-Files',
+    'SulusPersonal-Shell',
+    'SulusPersonal-Browser',
+    'SulusPersonal-Desktop',
+    'SulusPersonal-Apps',
+    'SulusPersonal-Calendar',
   ]);
 });
 

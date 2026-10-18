@@ -172,7 +172,7 @@ if (isMain || process.argv[1]?.endsWith('server.ts')) {
   }
   const server = createServer(config);
   server.listen(config.port, config.host, () => {
-    console.log(`Sulus Personal AI device MCP listening on http://${config.host}:${config.port}`);
+    console.log(`SulusPersonal device MCP listening on http://${config.host}:${config.port}`);
     console.log(`Packs: ${PACK_NAMES.map((name) => `/mcp/${name}`).join(', ')}`);
   });
 }

@@ -6,7 +6,7 @@ const mockTranslations: Record<string, string> = {
   com_ui_privacy_policy: 'Privacy policy',
   com_ui_privacy_policy_content: 'We collect account and conversation data.\n\nSee the [Terms of Service](/terms).',
   com_ui_terms_of_service: 'Terms of service',
-  com_ui_terms_of_service_content: 'You agree to use Sulus Personal AI lawfully.\n\nSee the [Privacy Policy](/privacy).',
+  com_ui_terms_of_service_content: 'You agree to use SulusPersonal lawfully.\n\nSee the [Privacy Policy](/privacy).',
   com_ui_legal_last_updated: 'Last updated September 18, 2026',
   com_ui_logo: '{{0}} Logo',
 };
@@ -17,7 +17,7 @@ jest.mock('~/hooks', () => ({
 }));
 
 jest.mock('~/data-provider', () => ({
-  useGetStartupConfig: () => ({ data: { appTitle: 'Sulus Personal AI' } }),
+  useGetStartupConfig: () => ({ data: { appTitle: 'SulusPersonal' } }),
 }));
 
 jest.mock('@librechat/client', () => ({
@@ -51,7 +51,7 @@ describe('LegalPage', () => {
     renderLegal('/terms');
 
     expect(screen.getByRole('heading', { level: 1, name: 'Terms of service' })).toBeInTheDocument();
-    expect(screen.getByText('You agree to use Sulus Personal AI lawfully.')).toBeInTheDocument();
+    expect(screen.getByText('You agree to use SulusPersonal lawfully.')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Privacy Policy' })).toHaveAttribute(
       'href',
       '/privacy',
