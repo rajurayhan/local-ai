@@ -3,6 +3,13 @@ import type { TAttachment, TFile } from 'librechat-data-provider';
 
 export const BROWSER_PACK_NAME = 'SulusPersonal-Browser';
 
+/** Prior pack ids kept so historical tool rows still open the browser viewport. */
+const BROWSER_PACK_NAMES = new Set([
+  BROWSER_PACK_NAME,
+  'Sulus-Browser',
+  'RakaAI-Browser',
+]);
+
 const VIEW_TOOLS = new Set(['open_page', 'click', 'fill', 'capture_page']);
 
 export type BrowserViewport = {
@@ -27,7 +34,7 @@ export function isBrowserViewTool(name: string, knownServers?: readonly string[]
     return false;
   }
   const [tool, server] = splitToolCallName(name, knownServers);
-  return server === BROWSER_PACK_NAME && VIEW_TOOLS.has(tool);
+  return BROWSER_PACK_NAMES.has(server) && VIEW_TOOLS.has(tool);
 }
 
 export function extractPageUrl(text: string | null | undefined): string | undefined {

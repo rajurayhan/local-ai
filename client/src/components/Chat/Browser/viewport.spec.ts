@@ -19,11 +19,13 @@ const screenshot = {
 } as TAttachment;
 
 describe('browser viewport helpers', () => {
-  it('recognizes SulusPersonal-Browser view tools only', () => {
+  it('recognizes current and legacy browser pack view tools', () => {
     expect(isBrowserViewTool(browserTool)).toBe(true);
     expect(isBrowserViewTool(`click${d}SulusPersonal-Browser`)).toBe(true);
     expect(isBrowserViewTool(`fill${d}SulusPersonal-Browser`)).toBe(true);
     expect(isBrowserViewTool(`capture_page${d}SulusPersonal-Browser`)).toBe(true);
+    expect(isBrowserViewTool(`open_page${d}RakaAI-Browser`)).toBe(true);
+    expect(isBrowserViewTool(`click${d}Sulus-Browser`)).toBe(true);
     expect(isBrowserViewTool(`page_text${d}SulusPersonal-Browser`)).toBe(false);
     expect(isBrowserViewTool(`list_links${d}SulusPersonal-Browser`)).toBe(false);
     expect(isBrowserViewTool(`open_page${d}other`)).toBe(false);

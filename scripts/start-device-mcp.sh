@@ -134,8 +134,19 @@ if [[ -f "$ROOT_DIR/librechat.yaml" ]]; then
     "$ROOT_DIR/config/device-mcp.yaml"
 fi
 
+# Keep agent MCP pack names aligned with the renamed yaml keys when Mongo is up.
+if command -v docker >/dev/null 2>&1 \
+  && docker exec chat-mongodb mongosh --eval 'db.runCommand({ ping: 1 })' >/dev/null 2>&1; then
+  docker exec -i chat-mongodb mongosh LibreChat --quiet \
+    < "$ROOT_DIR/scripts/seed-suluspersonal-agent.mongo.js" \
+    || echo "Agent seed did not finish; run npm run start:ollama later to reseed."
+fi
+
 if curl -sf "http://127.0.0.1:${PORT}/health" >/dev/null 2>&1; then
   echo "Device MCP is already running on port $PORT"
+  if [[ -f "$ROOT_DIR/librechat.yaml" ]]; then
+    echo "If librechat.yaml pack names changed, restart the API: docker compose restart api"
+  fi
   exit 0
 fi
 
