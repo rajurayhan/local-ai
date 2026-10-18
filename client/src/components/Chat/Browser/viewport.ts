@@ -4,11 +4,7 @@ import type { TAttachment, TFile } from 'librechat-data-provider';
 export const BROWSER_PACK_NAME = 'SulusPersonal-Browser';
 
 /** Prior pack ids kept so historical tool rows still open the browser viewport. */
-const BROWSER_PACK_NAMES = new Set([
-  BROWSER_PACK_NAME,
-  'Sulus-Browser',
-  'RakaAI-Browser',
-]);
+const BROWSER_PACK_NAMES = new Set([BROWSER_PACK_NAME, 'Sulus-Browser', 'RakaAI-Browser']);
 
 const VIEW_TOOLS = new Set(['open_page', 'click', 'fill', 'capture_page']);
 
