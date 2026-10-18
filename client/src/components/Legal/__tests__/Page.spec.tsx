@@ -4,9 +4,11 @@ import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 
 const mockTranslations: Record<string, string> = {
   com_ui_privacy_policy: 'Privacy policy',
-  com_ui_privacy_policy_content: 'We collect account and conversation data.\n\nSee the [Terms of Service](/terms).',
+  com_ui_privacy_policy_content:
+    'We collect account and conversation data.\n\nSee the [Terms of Service](/terms).',
   com_ui_terms_of_service: 'Terms of service',
-  com_ui_terms_of_service_content: 'You agree to use RakaAI lawfully.\n\nSee the [Privacy Policy](/privacy).',
+  com_ui_terms_of_service_content:
+    'You agree to use SulusPersonal lawfully.\n\nSee the [Privacy Policy](/privacy).',
   com_ui_legal_last_updated: 'Last updated September 18, 2026',
   com_ui_logo: '{{0}} Logo',
 };
@@ -17,7 +19,7 @@ jest.mock('~/hooks', () => ({
 }));
 
 jest.mock('~/data-provider', () => ({
-  useGetStartupConfig: () => ({ data: { appTitle: 'RakaAI' } }),
+  useGetStartupConfig: () => ({ data: { appTitle: 'SulusPersonal' } }),
 }));
 
 jest.mock('@librechat/client', () => ({
@@ -44,14 +46,17 @@ describe('LegalPage', () => {
 
     expect(screen.getByRole('heading', { level: 1, name: 'Privacy policy' })).toBeInTheDocument();
     expect(screen.getByText('We collect account and conversation data.')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Terms of Service' })).toHaveAttribute('href', '/terms');
+    expect(screen.getByRole('link', { name: 'Terms of Service' })).toHaveAttribute(
+      'href',
+      '/terms',
+    );
   });
 
   it('renders the terms of service', () => {
     renderLegal('/terms');
 
     expect(screen.getByRole('heading', { level: 1, name: 'Terms of service' })).toBeInTheDocument();
-    expect(screen.getByText('You agree to use RakaAI lawfully.')).toBeInTheDocument();
+    expect(screen.getByText('You agree to use SulusPersonal lawfully.')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Privacy Policy' })).toHaveAttribute(
       'href',
       '/privacy',

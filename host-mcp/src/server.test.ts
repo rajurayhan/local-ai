@@ -7,7 +7,7 @@ import { after, before, test } from 'node:test';
 import { defaultConfig } from './config.ts';
 import { createServer } from './server.ts';
 
-const root = fs.mkdtempSync(path.join(os.tmpdir(), 'rakaai-mcp-'));
+const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sulus-mcp-'));
 const token = 'test-token';
 const server = createServer(
   defaultConfig({
@@ -85,12 +85,12 @@ test('health lists the shared pack names', async () => {
   const body = (await response.json()) as { packs: string[] };
   assert.equal(response.status, 200);
   assert.deepEqual(body.packs, [
-    'RakaAI-Files',
-    'RakaAI-Shell',
-    'RakaAI-Browser',
-    'RakaAI-Desktop',
-    'RakaAI-Apps',
-    'RakaAI-Calendar',
+    'SulusPersonal-Files',
+    'SulusPersonal-Shell',
+    'SulusPersonal-Browser',
+    'SulusPersonal-Desktop',
+    'SulusPersonal-Apps',
+    'SulusPersonal-Calendar',
   ]);
 });
 

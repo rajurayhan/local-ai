@@ -33,7 +33,7 @@ const DEFAULT_DENY = [
 ];
 
 export function defaultRoot(): string {
-  return path.join(osHome(), 'Documents', 'RakaAI');
+  return path.join(osHome(), 'Documents', 'SulusPersonal');
 }
 
 export function defaultConfig(overrides: ConfigOverrides = {}): DeviceConfig {
@@ -42,7 +42,7 @@ export function defaultConfig(overrides: ConfigOverrides = {}): DeviceConfig {
     host: overrides.host ?? '0.0.0.0',
     port: overrides.port ?? 8765,
     token: overrides.token ?? '',
-    logPath: expandHome(overrides.logPath ?? '/tmp/rakaai-device-mcp.log'),
+    logPath: expandHome(overrides.logPath ?? '/tmp/suluspersonal-device-mcp.log'),
     files: {
       root,
       writes: overrides.files?.writes ?? false,

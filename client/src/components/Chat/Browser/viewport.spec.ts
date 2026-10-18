@@ -8,7 +8,7 @@ import {
 } from './viewport';
 
 const d = Constants.mcp_delimiter;
-const browserTool = `open_page${d}RakaAI-Browser`;
+const browserTool = `open_page${d}SulusPersonal-Browser`;
 const screenshot = {
   filename: 'open_page_img_abc.png',
   filepath: '/images/open_page_img_abc.png',
@@ -19,13 +19,15 @@ const screenshot = {
 } as TAttachment;
 
 describe('browser viewport helpers', () => {
-  it('recognizes RakaAI-Browser view tools only', () => {
+  it('recognizes current and legacy browser pack view tools', () => {
     expect(isBrowserViewTool(browserTool)).toBe(true);
-    expect(isBrowserViewTool(`click${d}RakaAI-Browser`)).toBe(true);
-    expect(isBrowserViewTool(`fill${d}RakaAI-Browser`)).toBe(true);
-    expect(isBrowserViewTool(`capture_page${d}RakaAI-Browser`)).toBe(true);
-    expect(isBrowserViewTool(`page_text${d}RakaAI-Browser`)).toBe(false);
-    expect(isBrowserViewTool(`list_links${d}RakaAI-Browser`)).toBe(false);
+    expect(isBrowserViewTool(`click${d}SulusPersonal-Browser`)).toBe(true);
+    expect(isBrowserViewTool(`fill${d}SulusPersonal-Browser`)).toBe(true);
+    expect(isBrowserViewTool(`capture_page${d}SulusPersonal-Browser`)).toBe(true);
+    expect(isBrowserViewTool(`open_page${d}RakaAI-Browser`)).toBe(true);
+    expect(isBrowserViewTool(`click${d}Sulus-Browser`)).toBe(true);
+    expect(isBrowserViewTool(`page_text${d}SulusPersonal-Browser`)).toBe(false);
+    expect(isBrowserViewTool(`list_links${d}SulusPersonal-Browser`)).toBe(false);
     expect(isBrowserViewTool(`open_page${d}other`)).toBe(false);
     expect(isBrowserViewTool('open_page')).toBe(false);
   });
@@ -65,7 +67,7 @@ describe('browser viewport helpers', () => {
 
   it('falls back to the tool args when the output has no URL', () => {
     const frame = browserViewportFromTool({
-      name: `click${d}RakaAI-Browser`,
+      name: `click${d}SulusPersonal-Browser`,
       output: 'Clicked a.next',
       args: { url: 'https://example.com/after' },
       attachments: [screenshot],

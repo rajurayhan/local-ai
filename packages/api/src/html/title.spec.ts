@@ -25,8 +25,8 @@ describe('injectAppTitle', () => {
   it('replaces a leftover LibreChat title with the deployment brand', () => {
     const html = injectAppTitle(SHELL);
 
-    expect(titleOf(html)).toBe('RakaAI');
-    expect(appTitleOf(html)).toBe('RakaAI');
+    expect(titleOf(html)).toBe('SulusPersonal');
+    expect(appTitleOf(html)).toBe('SulusPersonal');
     expect(html).not.toContain('<title>LibreChat</title>');
   });
 
@@ -45,21 +45,21 @@ describe('injectAppTitle', () => {
   });
 
   it('places the answer ahead of the app that reads it', () => {
-    const html = injectAppTitle(SHELL, 'RakaAI');
+    const html = injectAppTitle(SHELL, 'SulusPersonal');
 
     expect(html).toContain('window.__LIBRECHAT_CONFIG__');
     expect(html.indexOf('appTitle')).toBeLessThan(html.indexOf('/assets/index.js'));
   });
 
   it('takes the nonce a strict CSP requires to run it', () => {
-    const html = applyCspNonce(injectAppTitle(SHELL, 'RakaAI'), 'abc123');
+    const html = applyCspNonce(injectAppTitle(SHELL, 'SulusPersonal'), 'abc123');
 
     expect(html).toContain('<script nonce="abc123" data-librechat-app-title="true">');
   });
 
   it('does not stack a second copy on a shell that already carries the answer', () => {
-    const once = injectAppTitle(SHELL, 'RakaAI');
+    const once = injectAppTitle(SHELL, 'SulusPersonal');
 
-    expect(injectAppTitle(once, 'RakaAI')).toBe(once);
+    expect(injectAppTitle(once, 'SulusPersonal')).toBe(once);
   });
 });

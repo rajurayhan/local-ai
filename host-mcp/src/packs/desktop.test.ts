@@ -8,7 +8,7 @@ import { defaultConfig } from '../config.ts';
 import type { CommandRunner } from '../types.ts';
 import { createDesktopPack } from './desktop.ts';
 
-const root = fs.mkdtempSync(path.join(os.tmpdir(), 'rakaai-desk-'));
+const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sulus-desk-'));
 const shots = path.join(root, 'screenshots');
 
 after(() => {

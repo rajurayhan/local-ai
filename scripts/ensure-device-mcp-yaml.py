@@ -9,25 +9,54 @@ snippet = Path(sys.argv[2]).read_text()
 text = yaml_path.read_text()
 changed = False
 
+# Normalize legacy pack names to current SulusPersonal-* ids.
 RENAMES = (
-    ("rakaai-files", "RakaAI-Files"),
-    ("rakaai-shell", "RakaAI-Shell"),
-    ("rakaai-browser", "RakaAI-Browser"),
-    ("rakaai-desktop", "RakaAI-Desktop"),
-    ("rakaai-apps", "RakaAI-Apps"),
-    ("rakaai-calendar", "RakaAI-Calendar"),
+    ("rakaai-files", "SulusPersonal-Files"),
+    ("rakaai-shell", "SulusPersonal-Shell"),
+    ("rakaai-browser", "SulusPersonal-Browser"),
+    ("rakaai-desktop", "SulusPersonal-Desktop"),
+    ("rakaai-apps", "SulusPersonal-Apps"),
+    ("rakaai-calendar", "SulusPersonal-Calendar"),
+    ("RakaAI-Files", "SulusPersonal-Files"),
+    ("RakaAI-Shell", "SulusPersonal-Shell"),
+    ("RakaAI-Browser", "SulusPersonal-Browser"),
+    ("RakaAI-Desktop", "SulusPersonal-Desktop"),
+    ("RakaAI-Apps", "SulusPersonal-Apps"),
+    ("RakaAI-Calendar", "SulusPersonal-Calendar"),
+    ("Sulus-Files", "SulusPersonal-Files"),
+    ("Sulus-Shell", "SulusPersonal-Shell"),
+    ("Sulus-Browser", "SulusPersonal-Browser"),
+    ("Sulus-Desktop", "SulusPersonal-Desktop"),
+    ("Sulus-Apps", "SulusPersonal-Apps"),
+    ("Sulus-Calendar", "SulusPersonal-Calendar"),
+    ("sulus-files", "SulusPersonal-Files"),
+    ("sulus-shell", "SulusPersonal-Shell"),
+    ("sulus-browser", "SulusPersonal-Browser"),
+    ("sulus-desktop", "SulusPersonal-Desktop"),
+    ("sulus-apps", "SulusPersonal-Apps"),
+    ("sulus-calendar", "SulusPersonal-Calendar"),
+    ("suluspersonal-files", "SulusPersonal-Files"),
+    ("suluspersonal-shell", "SulusPersonal-Shell"),
+    ("suluspersonal-browser", "SulusPersonal-Browser"),
+    ("suluspersonal-desktop", "SulusPersonal-Desktop"),
+    ("suluspersonal-apps", "SulusPersonal-Apps"),
+    ("suluspersonal-calendar", "SulusPersonal-Calendar"),
 )
 
-if "rakaai-files:" in text or "mcp:rakaai-" in text:
+if any(old in text for old, _ in RENAMES):
     for old, new in RENAMES:
         if old in text:
             text = text.replace(old, new)
             changed = True
+for old_author in ("Authored by RakaAI", "Authored by Sulus Personal AI"):
+    if old_author in text:
+        text = text.replace(old_author, "Authored by SulusPersonal")
+        changed = True
 
 CALENDAR_SERVER = (
-    "  RakaAI-Calendar:\n"
-    "    title: RakaAI-Calendar\n"
-    "    description: 'RakaAI-Calendar: List and create Calendar events and Reminders on this Mac. Authored by RakaAI <raju@sulus.ai>.'\n"
+    "  SulusPersonal-Calendar:\n"
+    "    title: SulusPersonal-Calendar\n"
+    "    description: 'SulusPersonal-Calendar: List and create Calendar events and Reminders on this Mac. Authored by SulusPersonal <raju@sulus.ai>.'\n"
     "    type: streamable-http\n"
     "    url: http://host.docker.internal:8765/mcp/calendar\n"
     "    timeout: 60000\n"
@@ -37,92 +66,92 @@ CALENDAR_SERVER = (
     "      key: '${DEVICE_MCP_TOKEN}'\n"
 )
 
-if "RakaAI-Calendar:" not in text and "RakaAI-Apps:" in text:
+if "SulusPersonal-Calendar:" not in text and "SulusPersonal-Apps:" in text:
     apps_end = text.find("# Definition of custom endpoints\n")
     if apps_end != -1:
         text = text[:apps_end] + CALENDAR_SERVER + "\n" + text[apps_end:]
         changed = True
 
-if "title: RakaAI-Files" not in text:
+if "title: SulusPersonal-Files" not in text:
     start = text.find("mcpSettings:\n  allowedAddresses:\n    - 'host.docker.internal:8765'")
     end = text.find("# Definition of custom endpoints\n")
     if start != -1 and end != -1 and start < end:
         text = text[:start] + snippet.rstrip() + "\n\n" + text[end:]
         changed = True
-    elif "RakaAI-Files:" not in text and "rakaai-files:" not in text:
+    elif "SulusPersonal-Files:" not in text and "suluspersonal-files:" not in text:
         needle = "# Definition of custom endpoints\n"
         if needle not in text:
             sys.exit("librechat.yaml has no custom-endpoints marker to attach MCP to.")
         text = text.replace(needle, snippet.rstrip() + "\n\n" + needle, 1)
         changed = True
 
-if "mcp:RakaAI-Apps:slack_list_users" not in text and "mcp:RakaAI-Apps:list_hooks" in text:
+if "mcp:SulusPersonal-Apps:slack_list_users" not in text and "mcp:SulusPersonal-Apps:list_hooks" in text:
     text = text.replace(
-        "        - 'mcp:RakaAI-Apps:list_hooks'\n",
-        "        - 'mcp:RakaAI-Apps:list_hooks'\n"
-        "        - 'mcp:RakaAI-Apps:slack_list_users'\n"
-        "        - 'mcp:RakaAI-Apps:slack_search_users'\n"
-        "        - 'mcp:RakaAI-Apps:slack_list_channels'\n",
+        "        - 'mcp:SulusPersonal-Apps:list_hooks'\n",
+        "        - 'mcp:SulusPersonal-Apps:list_hooks'\n"
+        "        - 'mcp:SulusPersonal-Apps:slack_list_users'\n"
+        "        - 'mcp:SulusPersonal-Apps:slack_search_users'\n"
+        "        - 'mcp:SulusPersonal-Apps:slack_list_channels'\n",
         1,
     )
     changed = True
 
-if "mcp:RakaAI-Apps:slack_send_message" not in text and "mcp:RakaAI-Apps:trigger_hook" in text:
+if "mcp:SulusPersonal-Apps:slack_send_message" not in text and "mcp:SulusPersonal-Apps:trigger_hook" in text:
     text = text.replace(
-        "        - 'mcp:RakaAI-Apps:trigger_hook'\n",
-        "        - 'mcp:RakaAI-Apps:trigger_hook'\n"
-        "        - 'mcp:RakaAI-Apps:slack_send_message'\n",
+        "        - 'mcp:SulusPersonal-Apps:trigger_hook'\n",
+        "        - 'mcp:SulusPersonal-Apps:trigger_hook'\n"
+        "        - 'mcp:SulusPersonal-Apps:slack_send_message'\n",
         1,
     )
     changed = True
 
-if "mcp:RakaAI-Files:find_files" not in text and "mcp:RakaAI-Files:read_file" in text:
+if "mcp:SulusPersonal-Files:find_files" not in text and "mcp:SulusPersonal-Files:read_file" in text:
     text = text.replace(
-        "        - 'mcp:RakaAI-Files:read_file'\n",
-        "        - 'mcp:RakaAI-Files:read_file'\n"
-        "        - 'mcp:RakaAI-Files:find_files'\n"
-        "        - 'mcp:RakaAI-Files:search_text'\n",
+        "        - 'mcp:SulusPersonal-Files:read_file'\n",
+        "        - 'mcp:SulusPersonal-Files:read_file'\n"
+        "        - 'mcp:SulusPersonal-Files:find_files'\n"
+        "        - 'mcp:SulusPersonal-Files:search_text'\n",
         1,
     )
     changed = True
 
-if "mcp:RakaAI-Apps:slack_read_messages" not in text and "mcp:RakaAI-Apps:slack_list_channels" in text:
+if "mcp:SulusPersonal-Apps:slack_read_messages" not in text and "mcp:SulusPersonal-Apps:slack_list_channels" in text:
     text = text.replace(
-        "        - 'mcp:RakaAI-Apps:slack_list_channels'\n",
-        "        - 'mcp:RakaAI-Apps:slack_list_channels'\n"
-        "        - 'mcp:RakaAI-Apps:slack_read_messages'\n",
+        "        - 'mcp:SulusPersonal-Apps:slack_list_channels'\n",
+        "        - 'mcp:SulusPersonal-Apps:slack_list_channels'\n"
+        "        - 'mcp:SulusPersonal-Apps:slack_read_messages'\n",
         1,
     )
     changed = True
 
-if "mcp:RakaAI-Calendar:list_events" not in text and "mcp:RakaAI-Apps:slack_read_messages" in text:
+if "mcp:SulusPersonal-Calendar:list_events" not in text and "mcp:SulusPersonal-Apps:slack_read_messages" in text:
     text = text.replace(
-        "        - 'mcp:RakaAI-Apps:slack_read_messages'\n",
-        "        - 'mcp:RakaAI-Apps:slack_read_messages'\n"
-        "        - 'mcp:RakaAI-Calendar:list_events'\n"
-        "        - 'mcp:RakaAI-Calendar:list_reminders'\n",
+        "        - 'mcp:SulusPersonal-Apps:slack_read_messages'\n",
+        "        - 'mcp:SulusPersonal-Apps:slack_read_messages'\n"
+        "        - 'mcp:SulusPersonal-Calendar:list_events'\n"
+        "        - 'mcp:SulusPersonal-Calendar:list_reminders'\n",
         1,
     )
     changed = True
 
-if "mcp:RakaAI-Calendar:create_event" not in text and "mcp:RakaAI-Apps:slack_send_message" in text:
+if "mcp:SulusPersonal-Calendar:create_event" not in text and "mcp:SulusPersonal-Apps:slack_send_message" in text:
     text = text.replace(
-        "        - 'mcp:RakaAI-Apps:slack_send_message'\n",
-        "        - 'mcp:RakaAI-Apps:slack_send_message'\n"
-        "        - 'mcp:RakaAI-Calendar:create_event'\n"
-        "        - 'mcp:RakaAI-Calendar:add_reminder'\n",
+        "        - 'mcp:SulusPersonal-Apps:slack_send_message'\n",
+        "        - 'mcp:SulusPersonal-Apps:slack_send_message'\n"
+        "        - 'mcp:SulusPersonal-Calendar:create_event'\n"
+        "        - 'mcp:SulusPersonal-Calendar:add_reminder'\n",
         1,
     )
     changed = True
 
-old_files = "RakaAI-Files: Read files under the allowed folder on this Mac."
-new_files = "RakaAI-Files: Read files anywhere on this Mac."
+old_files = "SulusPersonal-Files: Read files under the allowed folder on this Mac."
+new_files = "SulusPersonal-Files: Read files anywhere on this Mac."
 if old_files in text:
     text = text.replace(old_files, new_files)
     changed = True
 
-old_apps = "RakaAI-Apps: Trigger configured app webhooks such as n8n."
-new_apps = "RakaAI-Apps: Send Slack messages and trigger configured app webhooks such as n8n."
+old_apps = "SulusPersonal-Apps: Trigger configured app webhooks such as n8n."
+new_apps = "SulusPersonal-Apps: Send Slack messages and trigger configured app webhooks such as n8n."
 if old_apps in text:
     text = text.replace(old_apps, new_apps)
     changed = True
@@ -146,26 +175,26 @@ if "\n    toolApproval:\n" not in text:
         "      enabled: true\n"
         "      mode: default\n"
         "      allow:\n"
-        "        - 'mcp:RakaAI-Files:list_directory'\n"
-        "        - 'mcp:RakaAI-Files:read_file'\n"
-        "        - 'mcp:RakaAI-Files:find_files'\n"
-        "        - 'mcp:RakaAI-Files:search_text'\n"
-        "        - 'mcp:RakaAI-Apps:list_hooks'\n"
-        "        - 'mcp:RakaAI-Apps:slack_list_users'\n"
-        "        - 'mcp:RakaAI-Apps:slack_search_users'\n"
-        "        - 'mcp:RakaAI-Apps:slack_list_channels'\n"
-        "        - 'mcp:RakaAI-Apps:slack_read_messages'\n"
-        "        - 'mcp:RakaAI-Calendar:list_events'\n"
-        "        - 'mcp:RakaAI-Calendar:list_reminders'\n"
+        "        - 'mcp:SulusPersonal-Files:list_directory'\n"
+        "        - 'mcp:SulusPersonal-Files:read_file'\n"
+        "        - 'mcp:SulusPersonal-Files:find_files'\n"
+        "        - 'mcp:SulusPersonal-Files:search_text'\n"
+        "        - 'mcp:SulusPersonal-Apps:list_hooks'\n"
+        "        - 'mcp:SulusPersonal-Apps:slack_list_users'\n"
+        "        - 'mcp:SulusPersonal-Apps:slack_search_users'\n"
+        "        - 'mcp:SulusPersonal-Apps:slack_list_channels'\n"
+        "        - 'mcp:SulusPersonal-Apps:slack_read_messages'\n"
+        "        - 'mcp:SulusPersonal-Calendar:list_events'\n"
+        "        - 'mcp:SulusPersonal-Calendar:list_reminders'\n"
         "      ask:\n"
-        "        - 'mcp:RakaAI-Files:write_file'\n"
-        "        - 'mcp:RakaAI-Shell:*'\n"
-        "        - 'mcp:RakaAI-Browser:*'\n"
-        "        - 'mcp:RakaAI-Desktop:*'\n"
-        "        - 'mcp:RakaAI-Apps:trigger_hook'\n"
-        "        - 'mcp:RakaAI-Apps:slack_send_message'\n"
-        "        - 'mcp:RakaAI-Calendar:create_event'\n"
-        "        - 'mcp:RakaAI-Calendar:add_reminder'\n"
+        "        - 'mcp:SulusPersonal-Files:write_file'\n"
+        "        - 'mcp:SulusPersonal-Shell:*'\n"
+        "        - 'mcp:SulusPersonal-Browser:*'\n"
+        "        - 'mcp:SulusPersonal-Desktop:*'\n"
+        "        - 'mcp:SulusPersonal-Apps:trigger_hook'\n"
+        "        - 'mcp:SulusPersonal-Apps:slack_send_message'\n"
+        "        - 'mcp:SulusPersonal-Calendar:create_event'\n"
+        "        - 'mcp:SulusPersonal-Calendar:add_reminder'\n"
         "      reason: 'Review {tool} before it runs on this Mac.'\n"
     )
     if needle in text:

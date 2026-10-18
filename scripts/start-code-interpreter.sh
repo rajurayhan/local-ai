@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Start the local ClickHouse/LibreChat Code Interpreter stack for RakaAI.
+# Start the local ClickHouse/LibreChat Code Interpreter stack for SulusPersonal.
 # Usage: npm run start:code-interpreter
 #
 # Expects a checkout at CODE_INTERPRETER_DIR (default: ../code-interpreter).
@@ -107,7 +107,7 @@ export CODEAPI_RUNTIME_SESSION_MODE=stateless
 "$ROOT_DIR/scripts/ensure-code-packages.sh" "$CODE_DIR"
 
 echo "Starting Code Interpreter at $CODE_DIR (first sandbox build can take a long time)"
-docker compose --project-name rakaai-codeapi --project-directory "$CODE_DIR" up -d --build
+docker compose --project-name suluspersonal-codeapi --project-directory "$CODE_DIR" up -d --build
 
 wait_for() {
   local url="$1"

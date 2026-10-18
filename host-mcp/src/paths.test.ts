@@ -6,7 +6,7 @@ import { after, before, test } from 'node:test';
 
 import { resolveInsideRoot, resolveUserPath } from './paths.ts';
 
-const root = fs.mkdtempSync(path.join(os.tmpdir(), 'rakaai-files-'));
+const root = fs.mkdtempSync(path.join(os.tmpdir(), 'suluspersonal-files-'));
 const nested = path.join(root, 'notes');
 
 before(() => {
@@ -30,7 +30,7 @@ test('rejects parent traversal', () => {
 });
 
 test('resolves an absolute path outside the fallback root', () => {
-  const outside = path.join(os.tmpdir(), `rakaai-anywhere-${Date.now()}.txt`);
+  const outside = path.join(os.tmpdir(), `sulus-anywhere-${Date.now()}.txt`);
   fs.writeFileSync(outside, 'anywhere');
   try {
     assert.equal(resolveUserPath(outside, root), fs.realpathSync(outside));
@@ -40,15 +40,15 @@ test('resolves an absolute path outside the fallback root', () => {
 });
 
 test('expands a home-relative path', () => {
-  const missing = '~/does-not-need-to-exist-rakaai';
+  const missing = '~/does-not-need-to-exist-sulus';
   assert.equal(
     resolveUserPath(missing, root),
-    path.resolve(os.homedir(), 'does-not-need-to-exist-rakaai'),
+    path.resolve(os.homedir(), 'does-not-need-to-exist-sulus'),
   );
 });
 
 test('rejects a symlink that escapes the root', () => {
-  const escape = path.join(os.tmpdir(), `rakaai-escape-${Date.now()}`);
+  const escape = path.join(os.tmpdir(), `sulus-escape-${Date.now()}`);
   fs.writeFileSync(escape, 'nope');
   const link = path.join(root, 'escape');
   fs.symlinkSync(escape, link);

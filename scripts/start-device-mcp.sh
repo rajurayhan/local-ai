@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Start the host-side MCP gateway so RakaAI agents can act on this Mac.
+# Start the host-side MCP gateway so SulusPersonal agents can act on this Mac.
 # Usage: npm run start:device-mcp
 
 set -euo pipefail
@@ -7,9 +7,9 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 HOST_MCP_DIR="$ROOT_DIR/host-mcp"
 PORT="${DEVICE_MCP_PORT:-8765}"
-PID_FILE="${TMPDIR:-/tmp}/rakaai-device-mcp.pid"
-LOG_FILE="/tmp/rakaai-device-mcp-server.log"
-ROOT_FOLDER="${DEVICE_MCP_ROOT:-$HOME/Documents/RakaAI}"
+PID_FILE="${TMPDIR:-/tmp}/suluspersonal-device-mcp.pid"
+LOG_FILE="/tmp/suluspersonal-device-mcp-server.log"
+ROOT_FOLDER="${DEVICE_MCP_ROOT:-$HOME/Documents/SulusPersonal}"
 
 require_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -25,7 +25,7 @@ require_cmd python3
 
 mkdir -p "$ROOT_FOLDER/screenshots"
 if [[ ! -f "$ROOT_FOLDER/README.txt" ]]; then
-  printf '%s\n' 'This is the default folder for relative paths. RakaAI-Files can also read any other path on this Mac.' > "$ROOT_FOLDER/README.txt"
+  printf '%s\n' 'This is the default folder for relative paths. SulusPersonal-Files can also read any other path on this Mac.' > "$ROOT_FOLDER/README.txt"
 fi
 
 if [[ ! -f "$ROOT_DIR/.env" ]]; then
@@ -134,8 +134,19 @@ if [[ -f "$ROOT_DIR/librechat.yaml" ]]; then
     "$ROOT_DIR/config/device-mcp.yaml"
 fi
 
+# Keep agent MCP pack names aligned with the renamed yaml keys when Mongo is up.
+if command -v docker >/dev/null 2>&1 \
+  && docker exec chat-mongodb mongosh --eval 'db.runCommand({ ping: 1 })' >/dev/null 2>&1; then
+  docker exec -i chat-mongodb mongosh LibreChat --quiet \
+    < "$ROOT_DIR/scripts/seed-suluspersonal-agent.mongo.js" \
+    || echo "Agent seed did not finish; run npm run start:ollama later to reseed."
+fi
+
 if curl -sf "http://127.0.0.1:${PORT}/health" >/dev/null 2>&1; then
   echo "Device MCP is already running on port $PORT"
+  if [[ -f "$ROOT_DIR/librechat.yaml" ]]; then
+    echo "If librechat.yaml pack names changed, restart the API: docker compose restart api"
+  fi
   exit 0
 fi
 
@@ -153,7 +164,7 @@ for _ in $(seq 1 40); do
     echo "Device MCP is ready at http://127.0.0.1:${PORT}/health"
     echo "Packs: /mcp/files /mcp/shell /mcp/browser /mcp/desktop /mcp/apps /mcp/calendar"
     echo "Restart the API if librechat.yaml changed: docker compose restart api"
-    echo "Then: npm run start:ollama  (reseeds agents) or seed scripts/seed-rakaai-agent.mongo.js"
+    echo "Then: npm run start:ollama  (reseeds agents) or seed scripts/seed-suluspersonal-agent.mongo.js"
     echo "Browser pack uses Playwright. If a site stays on a Cloudflare check, set browser.headless to false in host-mcp/config.json"
     exit 0
   fi

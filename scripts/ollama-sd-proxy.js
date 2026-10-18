@@ -130,7 +130,7 @@ async function generateImage({ prompt, negative_prompt, width, height, steps, se
   const w = clampDim(width);
   const h = clampDim(height);
   const s = resolveSteps(steps);
-  const outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'rakaai-mflux-'));
+  const outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'suluspersonal-mflux-'));
   const outputPath = path.join(outDir, 'image.png');
   const args = [
     '--model',

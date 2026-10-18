@@ -416,8 +416,8 @@ describe('Server Configuration', () => {
 
     for (const response of [fallbackResponse, indexResponse]) {
       expect(response.status).toBe(200);
-      expect(response.text).toContain('<title>RakaAI</title>');
-      expect(response.text).toContain('"appTitle":"RakaAI"');
+      expect(response.text).toContain('<title>SulusPersonal</title>');
+      expect(response.text).toContain('"appTitle":"SulusPersonal"');
       expect(response.text).not.toContain('<title>LibreChat</title>');
     }
   });

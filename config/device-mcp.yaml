@@ -4,9 +4,9 @@ mcpSettings:
     - '127.0.0.1:8765'
 
 mcpServers:
-  RakaAI-Files:
-    title: RakaAI-Files
-    description: 'RakaAI-Files: Find, search, and read files anywhere on this Mac. Authored by RakaAI <raju@sulus.ai>.'
+  SulusPersonal-Files:
+    title: SulusPersonal-Files
+    description: 'SulusPersonal-Files: Find, search, and read files anywhere on this Mac. Authored by SulusPersonal <raju@sulus.ai>.'
     type: streamable-http
     url: http://host.docker.internal:8765/mcp/files
     timeout: 60000
@@ -14,9 +14,9 @@ mcpServers:
       source: admin
       authorization_type: bearer
       key: '${DEVICE_MCP_TOKEN}'
-  RakaAI-Shell:
-    title: RakaAI-Shell
-    description: 'RakaAI-Shell: Run one allowlisted program in the allowed folder. Authored by RakaAI <raju@sulus.ai>.'
+  SulusPersonal-Shell:
+    title: SulusPersonal-Shell
+    description: 'SulusPersonal-Shell: Run one allowlisted program in the allowed folder. Authored by SulusPersonal <raju@sulus.ai>.'
     type: streamable-http
     url: http://host.docker.internal:8765/mcp/shell
     timeout: 60000
@@ -24,9 +24,9 @@ mcpServers:
       source: admin
       authorization_type: bearer
       key: '${DEVICE_MCP_TOKEN}'
-  RakaAI-Browser:
-    title: RakaAI-Browser
-    description: 'RakaAI-Browser: Open pages, list links, fill fields, and return visible text. Authored by RakaAI <raju@sulus.ai>.'
+  SulusPersonal-Browser:
+    title: SulusPersonal-Browser
+    description: 'SulusPersonal-Browser: Open pages, list links, fill fields, and return visible text. Authored by SulusPersonal <raju@sulus.ai>.'
     type: streamable-http
     url: http://host.docker.internal:8765/mcp/browser
     timeout: 120000
@@ -34,9 +34,9 @@ mcpServers:
       source: admin
       authorization_type: bearer
       key: '${DEVICE_MCP_TOKEN}'
-  RakaAI-Desktop:
-    title: RakaAI-Desktop
-    description: 'RakaAI-Desktop: Open Mac apps or files, use the clipboard, click menus, press shortcuts, type, and capture the screen. Authored by RakaAI <raju@sulus.ai>.'
+  SulusPersonal-Desktop:
+    title: SulusPersonal-Desktop
+    description: 'SulusPersonal-Desktop: Open Mac apps or files, use the clipboard, click menus, press shortcuts, type, and capture the screen. Authored by SulusPersonal <raju@sulus.ai>.'
     type: streamable-http
     url: http://host.docker.internal:8765/mcp/desktop
     timeout: 60000
@@ -44,9 +44,9 @@ mcpServers:
       source: admin
       authorization_type: bearer
       key: '${DEVICE_MCP_TOKEN}'
-  RakaAI-Apps:
-    title: RakaAI-Apps
-    description: 'RakaAI-Apps: Look up Slack people and channels, read and send Slack as you, and trigger app webhooks. Authored by RakaAI <raju@sulus.ai>.'
+  SulusPersonal-Apps:
+    title: SulusPersonal-Apps
+    description: 'SulusPersonal-Apps: Look up Slack people and channels, read and send Slack as you, and trigger app webhooks. Authored by SulusPersonal <raju@sulus.ai>.'
     type: streamable-http
     url: http://host.docker.internal:8765/mcp/apps
     timeout: 60000
@@ -54,9 +54,9 @@ mcpServers:
       source: admin
       authorization_type: bearer
       key: '${DEVICE_MCP_TOKEN}'
-  RakaAI-Calendar:
-    title: RakaAI-Calendar
-    description: 'RakaAI-Calendar: List and create Calendar events and Reminders on this Mac. Authored by RakaAI <raju@sulus.ai>.'
+  SulusPersonal-Calendar:
+    title: SulusPersonal-Calendar
+    description: 'SulusPersonal-Calendar: List and create Calendar events and Reminders on this Mac. Authored by SulusPersonal <raju@sulus.ai>.'
     type: streamable-http
     url: http://host.docker.internal:8765/mcp/calendar
     timeout: 60000

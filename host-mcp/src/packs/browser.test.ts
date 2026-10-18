@@ -79,7 +79,7 @@ test('fills a field and lists links on the open page', async () => {
   const fill = pack.tools.find((tool) => tool.name === 'fill');
   const links = pack.tools.find((tool) => tool.name === 'list_links');
   assert.ok(fill && links);
-  const filled = await fill.handler({ selector: 'input[name=q]', text: 'rakaai' });
+  const filled = await fill.handler({ selector: 'input[name=q]', text: 'sulus' });
   assert.match(filled.content[0].type === 'text' ? filled.content[0].text : '', /filled input/);
   const listed = await links.handler({});
   assert.match(
