@@ -1,9 +1,9 @@
 import { LocalStorageKeys } from 'librechat-data-provider';
 
 export const CHAT_TITLE_IN_TAB_KEY = 'chatTitleInTab';
-export const DEFAULT_APP_TITLE = 'RakaAI';
-/** Previous default baked into older shells and leftover localStorage. */
-const LEGACY_APP_TITLE = 'LibreChat';
+export const DEFAULT_APP_TITLE = 'Sulus Personal AI';
+/** Previous defaults baked into older shells and leftover localStorage. */
+const LEGACY_APP_TITLES = new Set(['LibreChat', 'RakaAI']);
 
 export const hasRealTitle = (title?: string | null): title is string =>
   title != null && title !== '' && title !== 'New Chat';
@@ -11,7 +11,7 @@ export const hasRealTitle = (title?: string | null): title is string =>
 export const getAppTitle = (): string => {
   try {
     const stored = localStorage.getItem(LocalStorageKeys.APP_TITLE);
-    if (stored && stored !== LEGACY_APP_TITLE) {
+    if (stored && !LEGACY_APP_TITLES.has(stored)) {
       return stored;
     }
     return DEFAULT_APP_TITLE;

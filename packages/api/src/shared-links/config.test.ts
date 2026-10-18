@@ -139,6 +139,6 @@ describe('buildSharedLinkStartupPayload', () => {
       {},
     );
 
-    expect(payload).toEqual({ appTitle: 'RakaAI' });
+    expect(payload).toEqual({ appTitle: 'Sulus Personal AI' });
   });
 });

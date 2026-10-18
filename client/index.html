@@ -9,14 +9,14 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta
       name="description"
-      content="RakaAI - A local chat application with support for multiple AI models"
+      content="Sulus Personal AI - A local chat application with support for multiple AI models"
     />
-    <title>RakaAI</title>
+    <title>Sulus Personal AI</title>
     <script>
       (function () {
         try {
           var stored = localStorage.getItem('appTitle');
-          if (stored === 'LibreChat') {
+          if (stored === 'LibreChat' || stored === 'RakaAI') {
             localStorage.removeItem('appTitle');
             stored = '';
           }

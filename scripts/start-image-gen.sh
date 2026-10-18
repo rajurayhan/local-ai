@@ -16,7 +16,7 @@ cd "$ROOT_DIR"
 MFLUX_BIN="${MFLUX_BIN:-mflux-generate-flux2}"
 MFLUX_MODEL="${MFLUX_MODEL:-flux2-klein-4b}"
 SD_PROXY_PORT="${SD_PROXY_PORT:-7860}"
-PROXY_PID_FILE="${TMPDIR:-/tmp}/rakaai-ollama-sd-proxy.pid"
+PROXY_PID_FILE="${TMPDIR:-/tmp}/sulus-ollama-sd-proxy.pid"
 
 require_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -36,7 +36,7 @@ fi
 
 echo "Starting image-gen proxy on port $SD_PROXY_PORT (mflux $MFLUX_MODEL)..."
 nohup env PATH="$PATH" MFLUX_BIN="$MFLUX_BIN" MFLUX_MODEL="$MFLUX_MODEL" SD_PROXY_PORT="$SD_PROXY_PORT" \
-  node "$ROOT_DIR/scripts/ollama-sd-proxy.js" >/tmp/rakaai-ollama-sd-proxy.log 2>&1 &
+  node "$ROOT_DIR/scripts/ollama-sd-proxy.js" >/tmp/sulus-ollama-sd-proxy.log 2>&1 &
 echo $! >"$PROXY_PID_FILE"
 
 for _ in $(seq 1 20); do
@@ -48,5 +48,5 @@ for _ in $(seq 1 20); do
   sleep 0.25
 done
 
-echo "Proxy started but /health is not ready yet. Check /tmp/rakaai-ollama-sd-proxy.log"
+echo "Proxy started but /health is not ready yet. Check /tmp/sulus-ollama-sd-proxy.log"
 exit 1

@@ -8,7 +8,7 @@ import { defaultConfig } from '../config.ts';
 import type { CommandRunner } from '../types.ts';
 import { createShellPack, isDeniedBinary, parseCommand, resolveCwd } from './shell.ts';
 
-const root = fs.mkdtempSync(path.join(os.tmpdir(), 'rakaai-shell-'));
+const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sulus-shell-'));
 
 after(() => {
   fs.rmSync(root, { recursive: true, force: true });

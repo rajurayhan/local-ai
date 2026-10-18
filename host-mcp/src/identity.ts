@@ -1,17 +1,17 @@
 import type { PackAuthor, PackName } from './types.ts';
 
 export const PACK_AUTHOR: PackAuthor = {
-  name: 'RakaAI',
+  name: 'Sulus Personal AI',
   email: 'raju@sulus.ai',
 };
 
 export const PACK_SHARE_NAMES = {
-  files: 'RakaAI-Files',
-  shell: 'RakaAI-Shell',
-  browser: 'RakaAI-Browser',
-  desktop: 'RakaAI-Desktop',
-  apps: 'RakaAI-Apps',
-  calendar: 'RakaAI-Calendar',
+  files: 'Sulus-Files',
+  shell: 'Sulus-Shell',
+  browser: 'Sulus-Browser',
+  desktop: 'Sulus-Desktop',
+  apps: 'Sulus-Apps',
+  calendar: 'Sulus-Calendar',
 } as const satisfies Record<PackName, string>;
 
 const SUMMARIES: Record<PackName, string> = {

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Start Ollama and the RakaAI Docker stack together.
+# Start Ollama and the Sulus Personal AI Docker stack together.
 # Usage: npm run start:ollama
 # Optional: OLLAMA_MODEL=llama3.1:8b npm run start:ollama
 #
@@ -97,10 +97,13 @@ path = Path(sys.argv[1])
 text = path.read_text()
 changed = False
 if "APP_TITLE=" not in text:
-    text += "\nAPP_TITLE=RakaAI\n"
+    text += "\nAPP_TITLE=Sulus Personal AI\n"
     changed = True
 elif "APP_TITLE=LibreChat" in text:
-    text = text.replace("APP_TITLE=LibreChat", "APP_TITLE=RakaAI", 1)
+    text = text.replace("APP_TITLE=LibreChat", "APP_TITLE=Sulus Personal AI", 1)
+    changed = True
+elif "APP_TITLE=RakaAI" in text:
+    text = text.replace("APP_TITLE=RakaAI", "APP_TITLE=Sulus Personal AI", 1)
     changed = True
 if "SD_WEBUI_URL=" not in text.splitlines() and "SD_WEBUI_URL=" not in text:
     text += "\nSD_WEBUI_URL=http://host.docker.internal:7860\n"
@@ -109,7 +112,7 @@ if "SEARCH=false" in text:
     text = text.replace("SEARCH=false", "SEARCH=true", 1)
     changed = True
 if "MEILI_MASTER_KEY=\n" in text or text.rstrip().endswith("MEILI_MASTER_KEY="):
-    text = text.replace("MEILI_MASTER_KEY=", "MEILI_MASTER_KEY=rakaai-meili-2026-09-18-local", 1)
+    text = text.replace("MEILI_MASTER_KEY=", "MEILI_MASTER_KEY=sulus-meili-2026-09-18-local", 1)
     changed = True
 if "EMBEDDINGS_PROVIDER=ollama" not in text:
     text += (
@@ -127,7 +130,7 @@ if "LIBRECHAT_CODE_BASEURL=" not in text or "LIBRECHAT_CODE_BASEURL=\n" in text:
     changed = True
 if changed:
     path.write_text(text)
-    print("Updated .env for RakaAI, search, and local RAG")
+    print("Updated .env for Sulus Personal AI, search, and local RAG")
 PY
 }
 
@@ -166,7 +169,7 @@ services:
       - OLLAMA_BASE_URL=http://host.docker.internal:11434
       - EMBEDDINGS_MODEL=nomic-embed-text
 EOF
-    echo "Wrote docker-compose.override.yaml so RakaAI loads librechat.yaml."
+    echo "Wrote docker-compose.override.yaml so Sulus Personal AI loads librechat.yaml."
     return
   fi
 
@@ -287,13 +290,18 @@ elif "host.docker.internal:7860" not in text and "allowedAddresses:" in text:
         text = text.replace(needle, extra, 1)
         changed = True
 
-if "Welcome to LibreChat!" in text:
-    text = text.replace(
-        "Welcome to LibreChat! Enjoy your experience.",
-        "Welcome to RakaAI! Enjoy your experience.",
-        1,
-    )
-    changed = True
+for old_welcome in (
+    "Welcome to LibreChat! Enjoy your experience.",
+    "Welcome to RakaAI! Enjoy your experience.",
+):
+    if old_welcome in text:
+        text = text.replace(
+            old_welcome,
+            "Welcome to Sulus Personal AI! Enjoy your experience.",
+            1,
+        )
+        changed = True
+        break
 
 if "defaultPinnedTools:" not in text:
     needle = "  # defaultPinnedTools:\n"
@@ -307,15 +315,15 @@ if "defaultPinnedTools:" not in text:
 
 if changed:
     yaml_path.write_text(text)
-    print(f"Updated librechat.yaml for Ollama ({model}) and RakaAI")
+    print(f"Updated librechat.yaml for Ollama ({model}) and Sulus Personal AI")
 PY
 }
 
 wait_for_app() {
   for _ in $(seq 1 60); do
     if curl -sf "$APP_URL/health" >/dev/null 2>&1; then
-      echo "RakaAI is ready at $APP_URL"
-      echo "Chat: endpoint RakaAI, or a RakaAI Agent for files, images, or device tools."
+      echo "Sulus Personal AI is ready at $APP_URL"
+      echo "Chat: Ollama endpoint, or a Sulus Personal AI agent for files, images, or device tools."
       echo "Image generation: npm run start:image-gen  (Flux proxy on :7860)."
       echo "Device actions:   npm run start:device-mcp (host MCP on :8765; Slack uses SLACK_BOT_TOKEN)."
       echo "Code interpreter: npm run start:code-interpreter (sandbox on :3112)."
@@ -324,7 +332,7 @@ wait_for_app() {
     sleep 2
   done
 
-  echo "RakaAI started but /health is not ready yet. Try $APP_URL in a moment."
+  echo "Sulus Personal AI started but /health is not ready yet. Try $APP_URL in a moment."
 }
 
 start_ollama
@@ -338,11 +346,11 @@ ensure_env
 ensure_override
 ensure_yaml
 python3 "$ROOT_DIR/scripts/ensure-device-mcp-yaml.py" "$ROOT_DIR/librechat.yaml" "$ROOT_DIR/config/device-mcp.yaml"
-echo "Starting RakaAI..."
+echo "Starting Sulus Personal AI..."
 compose up -d
 wait_for_app
 if docker exec chat-mongodb mongosh --eval 'db.runCommand({ ping: 1 })' >/dev/null 2>&1; then
-  docker exec -i chat-mongodb mongosh LibreChat --quiet < "$ROOT_DIR/scripts/seed-rakaai-agent.mongo.js"
+  docker exec -i chat-mongodb mongosh LibreChat --quiet < "$ROOT_DIR/scripts/seed-sulus-agent.mongo.js"
 fi
 if [[ -d "${CODE_INTERPRETER_DIR:-$ROOT_DIR/../code-interpreter}" ]]; then
   bash "$ROOT_DIR/scripts/start-code-interpreter.sh" || echo "Code Interpreter did not finish starting. Run npm run start:code-interpreter."

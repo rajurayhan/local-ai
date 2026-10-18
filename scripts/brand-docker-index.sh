@@ -10,7 +10,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
 CONTAINER="${LIBRECHAT_CONTAINER:-LibreChat}"
-TITLE="${APP_TITLE:-RakaAI}"
+TITLE="${APP_TITLE:-Sulus Personal AI}"
 OUT="${ROOT_DIR}/client/dist/index.html"
 MANIFEST_OUT="${ROOT_DIR}/client/dist/manifest.webmanifest"
 

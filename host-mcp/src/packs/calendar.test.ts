@@ -8,7 +8,7 @@ import { defaultConfig } from '../config.ts';
 import type { CommandRunner } from '../types.ts';
 import { createCalendarPack, dayRange, parseDateTime } from './calendar.ts';
 
-const root = fs.mkdtempSync(path.join(os.tmpdir(), 'rakaai-cal-'));
+const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sulus-cal-'));
 
 after(() => {
   fs.rmSync(root, { recursive: true, force: true });

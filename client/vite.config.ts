@@ -151,8 +151,8 @@ export default defineConfig(({ command }) => ({
       },
       includeAssets: [],
       manifest: {
-        name: 'RakaAI',
-        short_name: 'RakaAI',
+        name: 'Sulus Personal AI',
+        short_name: 'Sulus Personal AI',
         display: 'standalone',
         background_color: '#000000',
         theme_color: '#009688',

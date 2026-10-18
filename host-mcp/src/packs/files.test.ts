@@ -7,7 +7,7 @@ import { after, test } from 'node:test';
 import { defaultConfig } from '../config.ts';
 import { createFilesPack, formatEntry, formatSize, looksBinary, parseCount } from './files.ts';
 
-const root = fs.mkdtempSync(path.join(os.tmpdir(), 'rakaai-pack-'));
+const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sulus-pack-'));
 fs.writeFileSync(path.join(root, 'readme.txt'), 'hello');
 
 after(() => {
@@ -57,7 +57,7 @@ test('reads a slice of a large file and refuses binaries', async () => {
 });
 
 test('reads and lists files outside the default folder', async () => {
-  const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), 'rakaai-anywhere-'));
+  const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sulus-anywhere-'));
   const outsideFile = path.join(outsideDir, 'notes.txt');
   fs.writeFileSync(outsideFile, 'outside');
   try {

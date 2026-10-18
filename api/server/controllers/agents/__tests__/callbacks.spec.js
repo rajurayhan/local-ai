@@ -699,7 +699,7 @@ describe('createToolEndCallback', () => {
       const { saveBase64Image } = require('~/server/services/Files/process');
       saveBase64Image.mockResolvedValue({
         file_id: 'file-ui',
-        filename: 'open_page_mcp_RakaAI-Browser_img_mock-id.png',
+        filename: 'open_page_mcp_Sulus-Browser_img_mock-id.png',
         filepath: '/images/file-ui.png',
       });
 
@@ -707,7 +707,7 @@ describe('createToolEndCallback', () => {
       await toolEndCallback(
         {
           output: {
-            name: 'open_page_mcp_RakaAI-Browser',
+            name: 'open_page_mcp_Sulus-Browser',
             tool_call_id: 'tool123',
             artifact: {
               ui_images: {
@@ -728,7 +728,7 @@ describe('createToolEndCallback', () => {
       expect(saveBase64Image).toHaveBeenCalledWith('data:image/png;base64,abc123', {
         req,
         file_id: undefined,
-        filename: 'open_page_mcp_RakaAI-Browser_img_mock-id',
+        filename: 'open_page_mcp_Sulus-Browser_img_mock-id',
         endpoint: 'ollama',
         context: 'image_generation',
       });
